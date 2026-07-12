@@ -71,7 +71,21 @@ The first run may download a local model into Ollama. After that, it stays local
 
 This repository now includes a separate static showcase in [`docs/`](./docs/) and a GitHub Pages workflow in [`.github/workflows/pages.yml`](./.github/workflows/pages.yml).
 
+The showcase has three pages:
+
+- [`docs/index.html`](./docs/index.html) — page chooser
+- [`docs/family.html`](./docs/family.html) — closer-to-app preview for close friends and family
+- [`docs/marketing.html`](./docs/marketing.html) — tighter public marketing version with feature sections
+
 That showcase is intentionally static. It is meant for branding, positioning, and high-level product explanation. The full command center still runs in the Next.js app.
+
+To preview the static pages locally, run this from the repo root:
+
+```bash
+python3 -m http.server 8080 --directory docs
+```
+
+Then open `http://localhost:8080`.
 
 ## Learn more
 
