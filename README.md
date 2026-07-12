@@ -34,9 +34,9 @@ The first run may download a local model into Ollama. After that, it stays local
 - The app is designed to run in local, demo, and later production modes.
 - The public demo mode is read-only.
 - Approval gates are intentionally required before execution.
+- The remaining production work is tracked in [PRODUCTION_ROADMAP.md](./PRODUCTION_ROADMAP.md).
 
 ## Learn more
 
 - [Next.js documentation](https://nextjs.org/docs)
 - [Next.js deployment docs](https://nextjs.org/docs/app/building-your-application/deploying)
-

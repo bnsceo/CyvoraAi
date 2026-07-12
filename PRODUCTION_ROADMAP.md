@@ -1,0 +1,43 @@
+# Cyvora Production Roadmap
+
+This file tracks the remaining work needed to move Cyvora from local/demo mode into a real production launch.
+
+## Status key
+
+- `done` — completed
+- `in progress` — actively being worked on
+- `pending` — not started yet
+
+## Production milestones
+
+| Milestone | Status | Notes |
+| --- | --- | --- |
+| Production deployment for real external access | pending | Needs a hosted target and deployment workflow. |
+| Production auth | pending | Needs user identity, sessions, and protected routes. |
+| Billing controls | pending | Needs plan gating, usage limits, and payment provider integration. |
+| One real agent runtime integration | pending | Choose one backend/runtime path and wire it into the harness. |
+| Long-term production mode | pending | Needs a stable mode flag, safeguards, and rollout rules. |
+
+## Current product posture
+
+- Local mode: available
+- Free demo mode: available
+- Production mode: scaffolded, but not yet live
+
+## Working rule
+
+Nothing irreversible should run unless:
+
+1. the request is approved,
+2. the runtime plan snapshot matches,
+3. the mode allows the action,
+4. and the rollback path is explicit.
+
+## Suggested next implementation order
+
+1. Choose the production deployment target.
+2. Add auth and session protection.
+3. Add billing and usage ceilings.
+4. Integrate one runtime backend.
+5. Turn on production mode behind a flag.
+
