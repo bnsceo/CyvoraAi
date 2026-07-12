@@ -160,6 +160,7 @@ export default function Home() {
   const [showCreateTenant, setShowCreateTenant] = useState(false);
   const [missionDraft, setMissionDraft] = useState('I want to build a YouTube business.');
   const [missionPlanApproved, setMissionPlanApproved] = useState(false);
+  const [controlPanelCollapsed, setControlPanelCollapsed] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
@@ -822,31 +823,42 @@ export default function Home() {
               </div>
 
               <div className="mt-4 cyvora-tactile rounded-xl p-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Control panel</p>
-                <div className="mt-3 space-y-2.5">
-                  <ToggleRow
-                    label="Compact activity feed"
-                    description="Reduce the stream to denser mission updates."
-                    checked={prefs.compactFeed}
-                    onChange={() => setPrefs((current) => ({ ...current, compactFeed: !current.compactFeed }))}
-                  />
-                  <ToggleRow
-                    label="Deep detail"
-                    description="Show the expanded hierarchy and execution panels."
-                    checked={prefs.showVisionBridge}
-                    onChange={() =>
-                      setPrefs((current) => ({ ...current, showVisionBridge: !current.showVisionBridge }))
-                    }
-                  />
-                  <ToggleRow
-                    label="Emphasize approvals"
-                    description="Keep pending approvals visually loud."
-                    checked={prefs.emphasizeApprovals}
-                    onChange={() =>
-                      setPrefs((current) => ({ ...current, emphasizeApprovals: !current.emphasizeApprovals }))
-                    }
-                  />
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Control panel</p>
+                  <button
+                    type="button"
+                    onClick={() => setControlPanelCollapsed((current) => !current)}
+                    className="cyvora-chip rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-300 transition hover:translate-y-[-1px]"
+                  >
+                    {controlPanelCollapsed ? 'Show' : 'Hide'}
+                  </button>
                 </div>
+                {!controlPanelCollapsed && (
+                  <div className="mt-3 space-y-2.5">
+                    <ToggleRow
+                      label="Compact activity feed"
+                      description="Reduce the stream to denser mission updates."
+                      checked={prefs.compactFeed}
+                      onChange={() => setPrefs((current) => ({ ...current, compactFeed: !current.compactFeed }))}
+                    />
+                    <ToggleRow
+                      label="Deep detail"
+                      description="Show the expanded hierarchy and execution panels."
+                      checked={prefs.showVisionBridge}
+                      onChange={() =>
+                        setPrefs((current) => ({ ...current, showVisionBridge: !current.showVisionBridge }))
+                      }
+                    />
+                    <ToggleRow
+                      label="Emphasize approvals"
+                      description="Keep pending approvals visually loud."
+                      checked={prefs.emphasizeApprovals}
+                      onChange={() =>
+                        setPrefs((current) => ({ ...current, emphasizeApprovals: !current.emphasizeApprovals }))
+                      }
+                    />
+                  </div>
+                )}
               </div>
             </div>
         </CyvoraPageHeader>

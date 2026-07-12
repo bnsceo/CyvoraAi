@@ -73,11 +73,26 @@
         gap: 16px;
       }
 
-      .brand img {
-        width: 220px;
-        max-width: 48vw;
-        height: auto;
-        display: block;
+      .brand-mark {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background:
+          radial-gradient(circle at 35% 30%, rgba(141, 223, 255, 0.45), transparent 25%),
+          linear-gradient(135deg, rgba(141, 223, 255, 0.22), rgba(244, 212, 135, 0.18));
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.12);
+        flex: 0 0 auto;
+      }
+
+      .brand-mark span {
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+        transform: translateY(-1px);
       }
 
       .brand-copy {
@@ -253,11 +268,132 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .preview-grid {
+        margin-top: 24px;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: 1fr 1fr;
+      }
+
       .feature {
         padding: 20px;
         border-radius: 24px;
         border: 1px solid var(--border);
         background: rgba(255, 255, 255, 0.03);
+      }
+
+      .frame {
+        padding: 18px;
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .frame-screen {
+        padding: 18px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.94));
+      }
+
+      .frame-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .frame-top h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .frame-top p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .frame-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .frame-card {
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .frame-card strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 15px;
+      }
+
+      .frame-card span {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .screenshot-grid {
+        margin-top: 16px;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .screenshot {
+        padding: 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .screenshot .screen {
+        min-height: 170px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background:
+          radial-gradient(circle at 30% 20%, rgba(141, 223, 255, 0.12), transparent 28%),
+          linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.96));
+        padding: 12px;
+      }
+
+      .screenshot h3 {
+        margin: 0 0 6px;
+        font-size: 14px;
+      }
+
+      .screenshot p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .chip {
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
       }
 
       .feature h2,
@@ -343,10 +479,6 @@
           align-items: flex-start;
         }
 
-        .brand img {
-          width: 180px;
-        }
-
         .stats,
         .metric-grid {
           grid-template-columns: 1fr;
@@ -358,7 +490,7 @@
     <main class="shell">
       <header class="topbar">
         <div class="brand">
-          <img src="./cyvora-header-logo.png" alt="Cyvora" />
+          <div class="brand-mark" aria-hidden="true"><span>✓</span></div>
           <div class="brand-copy">
             <p class="eyebrow">AI Command Center</p>
             <p class="subtitle">Founder-led autonomous business operations</p>
@@ -427,6 +559,97 @@
         </aside>
       </section>
 
+      <section class="preview-grid">
+        <div class="frame">
+          <p class="eyebrow">Close friends & family</p>
+          <div class="frame-screen">
+            <div class="frame-top">
+              <div>
+                <h2>Live app feel</h2>
+                <p>Shows the shell, mode strip, and command surfaces.</p>
+              </div>
+              <div class="pill">Closer to product</div>
+            </div>
+            <div class="frame-grid">
+              <div class="frame-card">
+                <p class="eyebrow">Top bar</p>
+                <strong>Mode-aware shell</strong>
+                <span>Local / demo / production context stays visible.</span>
+              </div>
+              <div class="frame-card">
+                <p class="eyebrow">Controls</p>
+                <strong>Collapsible control panel</strong>
+                <span>Founder preferences are hidden when not needed.</span>
+              </div>
+              <div class="frame-card">
+                <p class="eyebrow">Live data</p>
+                <strong>Headquarters + runs</strong>
+                <span>Companies, approvals, and execution state remain readable.</span>
+              </div>
+              <div class="frame-card">
+                <p class="eyebrow">Mobile</p>
+                <strong>Thumb-first layout</strong>
+                <span>Quick actions and detail drawers stay within reach.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="frame">
+          <p class="eyebrow">Public marketing</p>
+          <div class="frame-screen">
+            <div class="frame-top">
+              <div>
+                <h2>Showcase-ready story</h2>
+                <p>Branded, concise, and easier to share publicly.</p>
+              </div>
+              <div class="pill">Marketing version</div>
+            </div>
+            <div class="chip-row">
+              <span class="chip">Mission Control</span>
+              <span class="chip">Harness Engineering</span>
+              <span class="chip">Loop Engineering</span>
+              <span class="chip">Mobile-first</span>
+            </div>
+            <div class="screenshot-grid">
+              <div class="screenshot">
+                <div class="screen">
+                  <p class="eyebrow">Screenshot 01</p>
+                  <h3>Mission Control</h3>
+                  <p>Objective intake, approval gating, and the operating model in one view.</p>
+                  <div class="chip-row">
+                    <span class="chip">Objective</span>
+                    <span class="chip">Approval</span>
+                  </div>
+                </div>
+              </div>
+              <div class="screenshot">
+                <div class="screen">
+                  <p class="eyebrow">Screenshot 02</p>
+                  <h3>Headquarters</h3>
+                  <p>Companies expand into departments, teams, agents, and execution nodes.</p>
+                  <div class="chip-row">
+                    <span class="chip">Org tree</span>
+                    <span class="chip">Live data</span>
+                  </div>
+                </div>
+              </div>
+              <div class="screenshot">
+                <div class="screen">
+                  <p class="eyebrow">Screenshot 03</p>
+                  <h3>War Room</h3>
+                  <p>Audit trails, incidents, and system health for safer operations.</p>
+                  <div class="chip-row">
+                    <span class="chip">Audit</span>
+                    <span class="chip">Safety</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="card section" id="architecture">
         <p class="eyebrow">Architecture</p>
         <h2>What this app is built to do</h2>
@@ -452,6 +675,23 @@
           <p>
             The GitHub Pages version demonstrates brand, positioning, and architecture. The live
             app continues to serve the full data-backed command center locally and in deployment.
+          </p>
+        </div>
+      </section>
+
+      <section class="feature-grid">
+        <div class="feature">
+          <h2>Feature focus for the public</h2>
+          <p>
+            Use the public site to explain the platform: mission intake, hierarchy generation,
+            approvals, and execution visibility.
+          </p>
+        </div>
+        <div class="feature">
+          <h2>Feature focus for friends and family</h2>
+          <p>
+            Show the closer-to-app preview so people can understand what the real shell feels
+            like without exposing the full runtime surface.
           </p>
         </div>
       </section>
