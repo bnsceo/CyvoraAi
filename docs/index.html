@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Cyvora · AI Command Center</title>
+    <meta
+      name="description"
+      content="Cyvora is a premium AI Command Center for founder-led autonomous business operations."
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #070b12;
+        --bg-2: #0f172a;
+        --panel: rgba(15, 23, 42, 0.86);
+        --panel-strong: rgba(15, 23, 42, 0.96);
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --cyan: #8ddfff;
+        --emerald: #059669;
+        --amber: #d97706;
+        --shadow: 0 18px 60px rgba(2, 6, 23, 0.55);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top, rgba(45, 212, 191, 0.18), transparent 32%),
+          radial-gradient(circle at 85% 10%, rgba(248, 209, 106, 0.16), transparent 18%),
+          linear-gradient(180deg, #070b12 0%, #0b1220 100%);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        padding: 32px 20px 40px;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .shell {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 20px;
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: rgba(15, 23, 42, 0.72);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(24px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .brand img {
+        width: 220px;
+        max-width: 48vw;
+        height: auto;
+        display: block;
+      }
+
+      .brand-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .eyebrow {
+        margin: 0;
+        font-size: 12px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--cyan);
+      }
+
+      .title {
+        margin: 0;
+        font-size: clamp(30px, 6vw, 58px);
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+        max-width: 62ch;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .hero {
+        margin-top: 24px;
+        display: grid;
+        gap: 24px;
+        grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(24px);
+      }
+
+      .card.strong {
+        background: var(--panel-strong);
+      }
+
+      .hero-copy {
+        padding: 28px;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 18px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .button.primary {
+        background: linear-gradient(135deg, rgba(141, 223, 255, 0.16), rgba(5, 150, 105, 0.18));
+        color: var(--text);
+      }
+
+      .button.secondary {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+      }
+
+      .stats {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 24px;
+      }
+
+      .stat {
+        padding: 16px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 20px;
+        margin-bottom: 6px;
+      }
+
+      .stat span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .showcase {
+        padding: 24px;
+      }
+
+      .mock {
+        padding: 20px;
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.92));
+        border-radius: 24px;
+        border: 1px solid var(--border);
+      }
+
+      .mock-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .metric-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+      }
+
+      .metric p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 16px;
+      }
+
+      .feature-grid {
+        margin-top: 24px;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .feature {
+        padding: 20px;
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .feature h2,
+      .section h2 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        line-height: 1.4;
+      }
+
+      .feature p,
+      .section p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .section {
+        margin-top: 24px;
+        padding: 24px;
+      }
+
+      .flow {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .flow-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .flow-item strong {
+        font-size: 14px;
+      }
+
+      .flow-item span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .footer {
+        margin-top: 24px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .footer a {
+        color: var(--cyan);
+      }
+
+      @media (max-width: 900px) {
+        .hero,
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 16px;
+        }
+
+        .topbar,
+        .hero-copy,
+        .showcase,
+        .section {
+          padding: 18px;
+        }
+
+        .brand {
+          align-items: flex-start;
+        }
+
+        .brand img {
+          width: 180px;
+        }
+
+        .stats,
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <img src="./cyvora-header-logo.png" alt="Cyvora" />
+          <div class="brand-copy">
+            <p class="eyebrow">AI Command Center</p>
+            <p class="subtitle">Founder-led autonomous business operations</p>
+          </div>
+        </div>
+        <div class="pill">Static GitHub Pages showcase</div>
+      </header>
+
+      <section class="hero">
+        <div class="card strong hero-copy">
+          <p class="eyebrow">Digital headquarters</p>
+          <h1 class="title">The Operating System for Autonomous Business</h1>
+          <p class="subtitle" style="margin-top: 16px;">
+            Cyvora turns business objectives into companies, departments, teams, agents, tasks,
+            connectors, approvals, and execution history. This showcase is a static preview of
+            the command surface; the full product runs in the Next.js app.
+          </p>
+          <div class="cta-row">
+            <a class="button primary" href="https://github.com/bnsceo/CyvoraAi">View repository</a>
+            <a class="button secondary" href="#architecture">Read architecture</a>
+          </div>
+          <div class="stats">
+            <div class="stat">
+              <strong>Harness</strong>
+              <span>Approval gates, validation, rollback posture</span>
+            </div>
+            <div class="stat">
+              <strong>Loop</strong>
+              <span>Plan → Act → Validate → Correct → Repeat</span>
+            </div>
+            <div class="stat">
+              <strong>Mobile</strong>
+              <span>Phone-first control surfaces and detail drawers</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="card showcase">
+          <div class="mock">
+            <div class="mock-top">
+              <div>
+                <p class="eyebrow">Mission Control</p>
+                <h2 class="title" style="font-size: 32px; margin-top: 8px;">Cyvora</h2>
+              </div>
+              <div class="pill">Live mode aware</div>
+            </div>
+            <div class="metric-grid">
+              <div class="metric">
+                <p>Companies</p>
+                <strong>Portfolio view</strong>
+              </div>
+              <div class="metric">
+                <p>Approvals</p>
+                <strong>Founder gates</strong>
+              </div>
+              <div class="metric">
+                <p>Execution</p>
+                <strong>Worker queue</strong>
+              </div>
+              <div class="metric">
+                <p>Audit</p>
+                <strong>Run history</strong>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="card section" id="architecture">
+        <p class="eyebrow">Architecture</p>
+        <h2>What this app is built to do</h2>
+        <div class="flow">
+          <div class="flow-item"><strong>Objective</strong><span>Founder input</span></div>
+          <div class="flow-item"><strong>Executive AI</strong><span>Orchestration layer</span></div>
+          <div class="flow-item"><strong>Company → Department → Team → Agent</strong><span>Organization model</span></div>
+          <div class="flow-item"><strong>Harness Validation</strong><span>Safe execution boundary</span></div>
+          <div class="flow-item"><strong>Verified Output</strong><span>Audit trail and rollback-ready state</span></div>
+        </div>
+      </section>
+
+      <section class="feature-grid">
+        <div class="feature">
+          <h2>Why this matters</h2>
+          <p>
+            The product is not a chatbot wrapper. It is meant to behave like an operating system
+            for founder-led business automation, with predictable runtime controls.
+          </p>
+        </div>
+        <div class="feature">
+          <h2>What the showcase proves</h2>
+          <p>
+            The GitHub Pages version demonstrates brand, positioning, and architecture. The live
+            app continues to serve the full data-backed command center locally and in deployment.
+          </p>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div>Cyvora · AI Command Center</div>
+        <div>
+          <a href="https://github.com/bnsceo/CyvoraAi">GitHub</a> ·
+          <a href="https://nextjs.org/docs/app/building-your-application/deploying/static-exports">Static export note</a>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

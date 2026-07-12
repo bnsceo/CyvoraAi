@@ -1,0 +1,47 @@
+name: Cyvora GitHub Pages
+
+on:
+  push:
+    branches:
+      - agent/canonical-repo-sync
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare static showcase
+        run: |
+          rm -rf .github/pages
+          mkdir -p .github/pages
+          cp -R docs/. .github/pages/
+          cp public/cyvora-header-logo.png .github/pages/cyvora-header-logo.png
+          cp public/cyvora-icon.svg .github/pages/cyvora-icon.svg
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .github/pages
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -67,6 +67,12 @@ The first run may download a local model into Ollama. After that, it stays local
 - The first production deployment path and worker loop are documented in [DEPLOYMENT_FLYIO.md](./DEPLOYMENT_FLYIO.md).
 - The current product direction is documented in [VISION_AI.md](./VISION_AI.md).
 
+## Static GitHub Pages showcase
+
+This repository now includes a separate static showcase in [`docs/`](./docs/) and a GitHub Pages workflow in [`.github/workflows/pages.yml`](./.github/workflows/pages.yml).
+
+That showcase is intentionally static. It is meant for branding, positioning, and high-level product explanation. The full command center still runs in the Next.js app.
+
 ## Learn more
 
 - [Next.js documentation](https://nextjs.org/docs)
