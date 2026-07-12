@@ -12,15 +12,17 @@
   --accent-violet: #a39dff;
   --accent-gold: #f4d487;
   --shadow-heavy:
-    16px 16px 30px rgba(0, 0, 0, 0.48),
-    -12px -12px 24px rgba(255, 255, 255, 0.03);
+    22px 22px 42px rgba(0, 0, 0, 0.56),
+    -12px -12px 24px rgba(255, 255, 255, 0.04),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.05);
   --shadow-tactile:
-    10px 10px 20px rgba(0, 0, 0, 0.42),
-    -8px -8px 16px rgba(255, 255, 255, 0.035),
-    inset 1px 1px 0 rgba(255, 255, 255, 0.035);
+    14px 14px 28px rgba(0, 0, 0, 0.52),
+    -10px -10px 20px rgba(255, 255, 255, 0.04),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.05),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.18);
   --shadow-pressed:
-    inset 8px 8px 16px rgba(0, 0, 0, 0.42),
-    inset -6px -6px 14px rgba(255, 255, 255, 0.02);
+    inset 12px 12px 22px rgba(0, 0, 0, 0.6),
+    inset -8px -8px 16px rgba(255, 255, 255, 0.025);
 }
 
 @theme inline {
@@ -55,35 +57,50 @@ body {
 
 .cyvora-glass {
   background:
-    linear-gradient(145deg, #101a2b, #0b1524);
-  border: 1px solid rgba(212, 229, 255, 0.06);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 30%),
+    linear-gradient(325deg, rgba(0, 0, 0, 0.18), transparent 42%),
+    linear-gradient(145deg, #111c2d, #0b1524);
+  border: 1px solid rgba(212, 229, 255, 0.08);
   box-shadow: var(--shadow-heavy);
   backdrop-filter: blur(18px);
+  position: relative;
+  isolation: isolate;
 }
 
 .cyvora-glass-strong {
   background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.065), transparent 26%),
+    linear-gradient(325deg, rgba(0, 0, 0, 0.22), transparent 38%),
     linear-gradient(145deg, #0f1727, #09111d);
-  border: 1px solid rgba(188, 208, 238, 0.08);
+  border: 1px solid rgba(188, 208, 238, 0.1);
   box-shadow: var(--shadow-heavy);
   backdrop-filter: blur(22px);
+  position: relative;
+  isolation: isolate;
 }
 
 .cyvora-tactile {
   background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.07), transparent 28%),
+    linear-gradient(325deg, rgba(0, 0, 0, 0.22), transparent 36%),
     linear-gradient(145deg, #101a2b, #09111d);
-  border: 1px solid rgba(195, 216, 255, 0.075);
+  border: 1px solid rgba(195, 216, 255, 0.1);
   box-shadow: var(--shadow-tactile);
+  position: relative;
+  isolation: isolate;
 }
 
 .cyvora-chip {
   background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.07), transparent 24%),
+    linear-gradient(325deg, rgba(0, 0, 0, 0.18), transparent 34%),
     linear-gradient(145deg, #0f1727, #09111d);
-  border: 1px solid rgba(194, 216, 255, 0.08);
+  border: 1px solid rgba(194, 216, 255, 0.1);
   box-shadow:
-    8px 8px 16px rgba(0, 0, 0, 0.28),
-    -8px -8px 16px rgba(255, 255, 255, 0.025),
-    inset 1px 1px 0 rgba(255, 255, 255, 0.025);
+    10px 10px 20px rgba(0, 0, 0, 0.34),
+    -8px -8px 16px rgba(255, 255, 255, 0.03),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.035),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.12);
 }
 
 .cyvora-neumo-pressed {
@@ -91,12 +108,16 @@ body {
 }
 
 :where(input:not([type='hidden']), textarea, select) {
-  background: linear-gradient(145deg, #0f1727, #09111d);
-  border: 1px solid rgba(194, 216, 255, 0.1);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 28%),
+    linear-gradient(325deg, rgba(0, 0, 0, 0.2), transparent 36%),
+    linear-gradient(145deg, #0f1727, #09111d);
+  border: 1px solid rgba(194, 216, 255, 0.12);
   border-radius: 1rem;
   color: var(--foreground);
   box-shadow: var(--shadow-tactile);
   outline: none;
+  appearance: none;
 }
 
 :where(input:not([type='hidden']), textarea, select)::placeholder {
