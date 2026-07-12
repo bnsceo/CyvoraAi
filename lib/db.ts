@@ -1,8 +1,9 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { workspaceRoot } from './paths';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'missions.db');
+const DB_PATH = path.join(/*turbopackIgnore: true*/ workspaceRoot, 'data', 'missions.db');
 
 const dataDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dataDir)) {

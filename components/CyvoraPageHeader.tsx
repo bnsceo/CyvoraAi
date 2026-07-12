@@ -12,14 +12,10 @@ export default function CyvoraPageHeader({ eyebrow, title, description, children
     <section className="cyvora-glass-strong rounded-2xl p-5 md:p-7">
       <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
         <div>
-          <div className="flex items-center gap-3">
-            <img src="/cyvora-logo.png" alt="Cyvora" className="h-16 w-auto shrink-0" />
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200">{eyebrow}</p>
-              <h1 className="mt-1 text-3xl font-semibold md:text-5xl">{title}</h1>
-              <p className="mt-1 text-[11px] uppercase tracking-[0.26em] text-slate-500">AI Command Center</p>
-              <p className="mt-1 text-sm text-slate-300">Cyvora branding loaded from your Desktop logo file.</p>
-            </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200">{eyebrow}</p>
+            <h1 className="mt-1 text-3xl font-semibold md:text-5xl">{title}</h1>
+            <p className="mt-1 text-[11px] uppercase tracking-[0.26em] text-slate-500">AI Command Center</p>
           </div>
           <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300 md:text-base">{description}</p>
         </div>

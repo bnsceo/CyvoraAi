@@ -35,6 +35,7 @@ The first run may download a local model into Ollama. After that, it stays local
 - The public demo mode is read-only.
 - Approval gates are intentionally required before execution.
 - The remaining production work is tracked in [PRODUCTION_ROADMAP.md](./PRODUCTION_ROADMAP.md).
+- The first production deployment path is documented in [DEPLOYMENT_FLYIO.md](./DEPLOYMENT_FLYIO.md).
 
 ## Learn more
 

@@ -251,7 +251,6 @@ export default function SelfCodingPage() {
             <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="mb-3 flex items-center gap-3">
-                  <img src="/cyvora-logo.png" alt="Cyvora" className="h-14 w-auto shrink-0" />
                   <span className="cyvora-chip rounded-full px-3 py-1 text-xs text-cyan-100">Cyvora · Harness</span>
                 </div>
                 <p className="text-sm font-medium uppercase tracking-[0.22em] text-cyan-300">
