@@ -12,7 +12,7 @@ This file tracks the remaining work needed to move Cyvora from local/demo mode i
 
 | Milestone | Status | Notes |
 | --- | --- | --- |
-| Production deployment for real external access | pending | Needs a hosted target and deployment workflow. |
+| Production deployment for real external access | in progress | Target chosen: Fly.io with persistent storage. |
 | Production auth | pending | Needs user identity, sessions, and protected routes. |
 | Billing controls | pending | Needs plan gating, usage limits, and payment provider integration. |
 | One real agent runtime integration | pending | Choose one backend/runtime path and wire it into the harness. |
@@ -40,4 +40,8 @@ Nothing irreversible should run unless:
 3. Add billing and usage ceilings.
 4. Integrate one runtime backend.
 5. Turn on production mode behind a flag.
+
+## Chosen deployment target
+
+- Fly.io
 
