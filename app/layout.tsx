@@ -35,8 +35,8 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#070b12" />
         <link rel="manifest" href="/manifest.webmanifest" />
-        <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <link rel="icon" href="/cyvora-icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/cyvora-icon.svg" />
       </head>
       <body className="min-h-full flex flex-col overflow-x-hidden pb-24 md:pb-0">
         {process.env.NODE_ENV === 'production' ? <PwaBootstrap /> : null}

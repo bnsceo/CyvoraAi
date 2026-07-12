@@ -190,11 +190,16 @@ export default function SecurityDashboard() {
 
       {selectedDetail ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm md:items-center md:p-4">
-          <div className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-black/40 md:rounded-2xl md:p-6">
+          <div className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-black/40 md:rounded-2xl md:p-6"
+            style={{
+              boxShadow:
+                'inset 1px 1px 0 rgba(255,255,255,0.05), inset -1px -1px 0 rgba(0,0,0,0.3), 0 22px 40px rgba(0,0,0,0.45)',
+            }}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-300">{selectedDetail.kind}</p>
-                <h2 className="mt-1 text-xl font-semibold">{selectedDetail.title}</h2>
+                <h2 className="mt-1 text-[20px] font-semibold">{selectedDetail.title}</h2>
               </div>
               <button
                 type="button"
@@ -209,7 +214,13 @@ export default function SecurityDashboard() {
               <Stat label="Type" value={selectedDetail.kind} />
               <Stat label="Tags" value={selectedDetail.tags.join(' · ')} />
             </div>
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div
+              className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+              style={{
+                boxShadow:
+                  'inset 1px 1px 0 rgba(255,255,255,0.05), inset -1px -1px 0 rgba(0,0,0,0.32)',
+              }}
+            >
               <p className="text-sm leading-6 text-slate-300">{selectedDetail.details}</p>
               {selectedDetail.secondary ? <p className="mt-3 text-xs text-slate-500">{selectedDetail.secondary}</p> : null}
             </div>
@@ -222,8 +233,14 @@ export default function SecurityDashboard() {
 
 function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-      <div className="cyvora-glass rounded-2xl p-5 md:p-6">
-      <h2 className="text-lg font-semibold">{title}</h2>
+    <div
+      className="cyvora-glass rounded-2xl p-5 md:p-6"
+      style={{
+        boxShadow:
+          'inset 1px 1px 0 rgba(255,255,255,0.05), inset -1px -1px 0 rgba(0,0,0,0.26), 0 18px 34px rgba(0,0,0,0.18)',
+      }}
+    >
+      <h2 className="text-[20px] font-semibold">{title}</h2>
       <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-slate-400">{subtitle}</p>
       <div className="mt-4">{children}</div>
     </div>
@@ -232,8 +249,14 @@ function Panel({ title, subtitle, children }: { title: string; subtitle: string;
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="cyvora-tactile rounded-xl p-4">
-      <p className="text-2xl font-semibold">{value}</p>
+    <div
+      className="cyvora-tactile rounded-xl p-4"
+      style={{
+        boxShadow:
+          'inset 1px 1px 0 rgba(255,255,255,0.06), inset -1px -1px 0 rgba(0,0,0,0.28), 0 8px 16px rgba(0,0,0,0.2)',
+      }}
+    >
+      <p className="text-[20px] font-semibold">{value}</p>
       <p className="mt-1 text-xs text-slate-400">{label}</p>
     </div>
   );
