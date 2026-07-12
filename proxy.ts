@@ -10,6 +10,7 @@ const PUBLIC_PATHS = [
   '/manifest.webmanifest',
   '/sw.js',
   '/cyvora-logo.png',
+  '/cyvora-header-logo.png',
 ];
 
 export async function proxy(request: NextRequest) {
@@ -30,5 +31,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api/unlock|api/logout|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|cyvora-logo.png).*)'],
+  matcher: ['/((?!api/unlock|api/logout|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|cyvora-logo.png|cyvora-header-logo.png).*)'],
 };

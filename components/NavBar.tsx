@@ -22,7 +22,7 @@ export default function NavBar() {
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link href="/" className="cyvora-tactile flex items-center gap-3 rounded-2xl px-3 py-2 transition hover:translate-y-[-1px]">
-            <img src="/cyvora-logo.png" alt="Cyvora logo" className="h-12 w-auto shrink-0" />
+            <img src="/cyvora-header-logo.png" alt="Cyvora logo" className="h-12 w-auto shrink-0" />
             <div className="leading-tight">
               <p className="text-sm font-semibold text-white">Cyvora</p>
               <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/80">AI Command Center</p>

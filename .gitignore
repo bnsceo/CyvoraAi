@@ -23,6 +23,10 @@
 # misc
 .DS_Store
 *.pem
+logs/
+tenants/
+mission_briefing.md
+mission_status.json
 
 # debug
 npm-debug.log*
