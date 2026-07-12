@@ -20,6 +20,7 @@ import {
 import { inferMissionBlueprint } from '@/lib/missionBlueprint';
 import { getRuntimeModeInfo, isDemoMode } from '@/lib/runtimeMode';
 import { loadHarnessApprovalSnapshot } from '@/lib/harnessApproval';
+import { evaluateBillingGate, formatBillingSummary } from '@/lib/billing';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -71,6 +72,39 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         { error: 'Runtime plan does not match the approved snapshot' },
         { status: 409 }
+      );
+    }
+
+    const billingGate = await evaluateBillingGate({
+      tenant,
+      runtimePlan: approvedRequestSnapshot.runtime_plan,
+    });
+    if (!billingGate.allowed) {
+      const blockedRunId = await saveExecutionRun({
+        tenant,
+        request_id: requestedId,
+        goal: approvedRequestSnapshot.request,
+        runtime_plan: approvedRequestSnapshot.runtime_plan,
+        runtime_mode: runtimeMode.mode,
+        status: 'blocked',
+        rollback_state: 'required',
+        paid_ai: runtimeMode.allowPaidAI,
+        mock_mode: runtimeMode.mockMode,
+      });
+      await updateExecutionRun({
+        id: blockedRunId,
+        status: 'blocked',
+        rollback_state: 'required',
+        error_message: billingGate.reason || 'Billing policy blocked execution',
+        completed: true,
+      });
+      return NextResponse.json(
+        {
+          error: billingGate.reason || 'Billing policy blocked execution',
+          billing: formatBillingSummary(billingGate),
+          execution_run_id: blockedRunId,
+        },
+        { status: 402 }
       );
     }
 

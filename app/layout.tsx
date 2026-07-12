@@ -35,9 +35,19 @@ export default function RootLayout({
           </div>
         </div>
         <footer className="border-t border-white/10 bg-slate-950/80 px-4 py-4 text-center text-xs text-slate-500">
-          <div className="mx-auto flex items-center justify-center gap-2">
-            <img src="/cyvora-logo.png" alt="Cyvora" className="h-5 w-auto" />
-            <span>Created by Anderson · Founder · Cyvora</span>
+          <div className="mx-auto flex flex-wrap items-center justify-center gap-3">
+            <div className="flex items-center gap-2">
+              <img src="/cyvora-logo.png" alt="Cyvora" className="h-5 w-auto" />
+              <span>Created by Anderson · Founder · Cyvora</span>
+            </div>
+            <form action="/api/logout" method="post">
+              <button
+                type="submit"
+                className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-slate-300 transition hover:bg-white/[0.08]"
+              >
+                Sign out
+              </button>
+            </form>
           </div>
         </footer>
         <MobileDock />

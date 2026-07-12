@@ -1,26 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { AUTH_COOKIE_NAME, isAuthRequired, verifyAuthSession } from '@/lib/auth';
 
 const PUBLIC_PATHS = [
   '/unlock',
   '/api/unlock',
+  '/api/logout',
   '/_next',
   '/favicon.ico',
   '/manifest.webmanifest',
   '/sw.js',
-  '/dominion-logo.svg',
+  '/cyvora-logo.png',
 ];
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
     return NextResponse.next();
   }
 
-  const accessCode = process.env.TUNNEL_ACCESS_CODE;
-  if (!accessCode) return NextResponse.next();
+  if (!isAuthRequired()) return NextResponse.next();
 
-  const cookie = request.cookies.get('dominion_access')?.value;
-  if (cookie === accessCode) return NextResponse.next();
+  const session = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+  if (await verifyAuthSession(session)) return NextResponse.next();
 
   const url = request.nextUrl.clone();
   url.pathname = '/unlock';
@@ -29,5 +30,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api/unlock|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|dominion-logo.svg).*)'],
+  matcher: ['/((?!api/unlock|api/logout|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|cyvora-logo.png).*)'],
 };

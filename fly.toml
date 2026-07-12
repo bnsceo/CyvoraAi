@@ -12,6 +12,10 @@ primary_region = "ewr"
   WORKER_POLL_INTERVAL_SECONDS = "15"
   MOCK_MODE = "true"
   ALLOW_PAID_AI = "false"
+  CYVORA_BILLING_MODE = "enforce"
+  CYVORA_MAX_RUN_COST_USD = "0.25"
+  CYVORA_MAX_DAILY_COST_USD = "1.00"
+  CYVORA_AUTH_REQUIRED = "true"
 
 [[mounts]]
   source = "cyvora_data"

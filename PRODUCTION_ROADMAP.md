@@ -13,8 +13,8 @@ This file tracks the remaining work needed to move Cyvora from local/demo mode i
 | Milestone | Status | Notes |
 | --- | --- | --- |
 | Production deployment for real external access | in progress | Target chosen: Fly.io with persistent storage. |
-| Production auth | pending | Needs user identity, sessions, and protected routes. |
-| Billing controls | pending | Needs plan gating, usage limits, and payment provider integration. |
+| Production auth | in progress | Signed session cookie, unlock gate, logout, and protected routes are now in place. |
+| Billing controls | in progress | Runtime plan ceilings and execution blocking are now enforced. |
 | One real agent runtime integration | in progress | Worker loop and persona bundle are now in the repo. |
 | Long-term production mode | pending | Needs a stable mode flag, safeguards, and rollout rules. |
 

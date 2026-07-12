@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { AUTH_COOKIE_NAME, createAuthSession, getAccessCode, getAuthCookieOptions, isAuthRequired } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   const contentType = request.headers.get('content-type') || '';
@@ -15,9 +16,8 @@ export async function POST(request: NextRequest) {
     nextPath = body.next || '/';
   }
 
-  const accessCode = process.env.TUNNEL_ACCESS_CODE;
-
-  if (!accessCode) {
+  const accessCode = getAccessCode();
+  if (!accessCode && isAuthRequired()) {
     return NextResponse.json({ error: 'Tunnel access is not configured.' }, { status: 500 });
   }
 
@@ -27,12 +27,7 @@ export async function POST(request: NextRequest) {
 
   const url = new URL(nextPath, request.url);
   const response = NextResponse.redirect(url);
-  response.cookies.set('dominion_access', accessCode, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: true,
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  const session = await createAuthSession();
+  response.cookies.set(AUTH_COOKIE_NAME, session, getAuthCookieOptions());
   return response;
 }
