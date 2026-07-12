@@ -124,9 +124,9 @@ export default function CompanyDetailPage() {
                 <p className="mt-1 text-sm text-slate-400">Connectors, tasks, and outputs are first-class nodes now</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setActivePanel('connectors')} className={`cyvora-chip rounded-full px-3 py-1 text-xs ${activePanel === 'connectors' ? 'text-cyan-100' : 'text-slate-300'}`}>Connectors {connectorCount}</button>
-                <button onClick={() => setActivePanel('tasks')} className={`cyvora-chip rounded-full px-3 py-1 text-xs ${activePanel === 'tasks' ? 'text-cyan-100' : 'text-slate-300'}`}>Tasks {taskCount}</button>
-                <button onClick={() => setActivePanel('outputs')} className={`cyvora-chip rounded-full px-3 py-1 text-xs ${activePanel === 'outputs' ? 'text-cyan-100' : 'text-slate-300'}`}>Outputs {outputCount}</button>
+                <button onClick={() => setActivePanel('connectors')} className={`cyvora-chip rounded-full px-3 py-1 font-mono text-xs ${activePanel === 'connectors' ? 'text-cyan-100' : 'text-slate-300'}`}>Connectors {connectorCount}</button>
+                <button onClick={() => setActivePanel('tasks')} className={`cyvora-chip rounded-full px-3 py-1 font-mono text-xs ${activePanel === 'tasks' ? 'text-cyan-100' : 'text-slate-300'}`}>Tasks {taskCount}</button>
+                <button onClick={() => setActivePanel('outputs')} className={`cyvora-chip rounded-full px-3 py-1 font-mono text-xs ${activePanel === 'outputs' ? 'text-cyan-100' : 'text-slate-300'}`}>Outputs {outputCount}</button>
               </div>
             </div>
             <div className="space-y-3">
@@ -310,10 +310,10 @@ function LiveNodeCard({
     <div className="cyvora-tactile rounded-xl p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-white">{title}</p>
-          <p className="mt-1 text-xs text-slate-400">{meta}</p>
+                  <p className="text-sm font-medium text-white">{title}</p>
+                  <p className="mt-1 font-mono text-xs text-slate-400">{meta}</p>
         </div>
-        {badge ? <span className="cyvora-chip rounded-full px-3 py-1 text-[11px] text-slate-300">{badge}</span> : null}
+        {badge ? <span className="cyvora-chip rounded-full px-3 py-1 font-mono text-[11px] text-slate-300">{badge}</span> : null}
       </div>
       {description ? <p className="mt-3 text-sm leading-6 text-slate-300">{description}</p> : null}
     </div>
@@ -321,5 +321,5 @@ function LiveNodeCard({
 }
 
 function EmptyState({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-slate-400">{children}</p>;
+  return <p className="cyvora-tactile rounded-xl p-5 text-sm text-slate-400">{children}</p>;
 }

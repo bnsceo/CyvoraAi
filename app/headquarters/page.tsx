@@ -192,7 +192,7 @@ export default function HeadquartersPage() {
         </CyvoraPageHeader>
 
         {loading ? (
-          <div className="mt-6 cyvora-glass rounded-2xl p-6 text-slate-400">
+          <div className="cyvora-glass mt-6 rounded-2xl p-6 text-slate-400">
             Loading Headquarters...
           </div>
         ) : !data || data.companies.length === 0 ? (
@@ -200,9 +200,9 @@ export default function HeadquartersPage() {
         ) : (
           <section className="mt-6 grid gap-6 xl:grid-cols-[360px_1fr]">
             <aside className="cyvora-glass rounded-2xl p-5">
-              <div className="rounded-xl border border-cyan-300/25 bg-cyan-300/10 p-4">
+              <div className="cyvora-tactile rounded-xl p-4">
                 <div className="flex items-center gap-3">
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-cyan-300 text-sm font-bold text-slate-950">
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-cyan-300 text-sm font-bold text-slate-950 shadow-[inset_1px_1px_0_rgba(255,255,255,0.5),10px_10px_20px_rgba(0,0,0,0.34)]">
                     AI
                   </div>
                   <div>
@@ -224,10 +224,10 @@ export default function HeadquartersPage() {
                       setSelectedCompanyId(company.id);
                       setMobileCompanyOpen(true);
                     }}
-                    className={`min-w-[220px] rounded-xl border p-4 text-left transition xl:w-full ${
+                    className={`cyvora-tactile min-w-[220px] rounded-xl p-4 text-left transition xl:w-full ${
                       selectedCompany?.id === company.id
-                        ? 'border-cyan-300/50 bg-cyan-300/10'
-                        : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                        ? 'cyvora-neumo-pressed text-cyan-100'
+                        : 'text-slate-200 hover:translate-y-[-1px]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -254,8 +254,8 @@ export default function HeadquartersPage() {
                 Share selected company
               </button>
 
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Public handoff</p>
+              <div className="cyvora-tactile mt-4 rounded-2xl p-4">
+                <p className="font-mono text-xs uppercase tracking-[0.18em] text-slate-500">Public handoff</p>
                 <p className="mt-1 text-sm text-slate-300">
                   Share the current company view without exposing the rest of Headquarters.
                 </p>
@@ -277,8 +277,8 @@ export default function HeadquartersPage() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4 text-sm text-slate-100 md:hidden">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-200">Phone view</p>
+              <div className="cyvora-tactile mt-4 rounded-2xl p-4 text-sm text-slate-100 md:hidden">
+                <p className="font-mono text-xs uppercase tracking-[0.18em] text-cyan-200">Phone view</p>
                 <p className="mt-1 font-medium">{selectedCompany?.name || 'No company selected'}</p>
                 <p className="mt-1 text-xs text-slate-300">
                   {selectedCompany?.departments.length || 0} departments · {countTeams(selectedCompany?.departments)} teams ·{' '}
@@ -294,10 +294,10 @@ export default function HeadquartersPage() {
 
       {mobileCompanyOpen && selectedCompany ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-3 backdrop-blur-sm md:hidden">
-          <div className="max-h-[86vh] w-full overflow-y-auto rounded-t-3xl border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-black/50">
+          <div className="cyvora-glass-strong max-h-[86vh] w-full overflow-y-auto rounded-t-3xl p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-300">Company drawer</p>
+                <p className="font-mono text-xs uppercase tracking-[0.18em] text-cyan-300">Company drawer</p>
                 <h2 className="mt-1 text-xl font-semibold">{selectedCompany.name}</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-400">{selectedCompany.description}</p>
               </div>
@@ -318,13 +318,13 @@ export default function HeadquartersPage() {
 
             <div className="mt-4 space-y-3">
               {selectedCompany.departments.map((department) => (
-                <div key={department.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div key={department.id} className="cyvora-tactile rounded-2xl p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-cyan-100">{department.name}</p>
                       <p className="mt-1 text-xs text-slate-400">{department.description}</p>
                     </div>
-                    <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
+                    <span className="cyvora-chip rounded-full px-3 py-1 text-xs text-slate-300">
                       {department.teams.length} teams
                     </span>
                   </div>
@@ -332,7 +332,7 @@ export default function HeadquartersPage() {
                     {department.teams.slice(0, 4).map((team) => (
                       <span
                         key={team.id}
-                        className="rounded-full border border-white/10 bg-slate-900 px-3 py-1 text-xs text-slate-200"
+                        className="cyvora-chip rounded-full px-3 py-1 text-xs text-slate-200"
                       >
                         {team.name}
                       </span>

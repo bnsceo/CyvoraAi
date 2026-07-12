@@ -79,7 +79,7 @@ export default function SecurityDashboard() {
         </CyvoraPageHeader>
 
         {loading ? (
-          <p className="mt-6 cyvora-glass rounded-2xl p-6 text-sm text-slate-400">
+          <p className="cyvora-glass mt-6 rounded-2xl p-6 text-sm text-slate-400">
             Loading War Room...
           </p>
         ) : (
@@ -222,9 +222,9 @@ export default function SecurityDashboard() {
 
 function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <div className="cyvora-glass rounded-2xl p-5 md:p-6">
+      <div className="cyvora-glass rounded-2xl p-5 md:p-6">
       <h2 className="text-lg font-semibold">{title}</h2>
-      <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+      <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-slate-400">{subtitle}</p>
       <div className="mt-4">{children}</div>
     </div>
   );
@@ -240,7 +240,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-slate-400">{children}</p>;
+  return <p className="cyvora-tactile rounded-xl p-5 text-sm text-slate-400">{children}</p>;
 }
 
 function StatusBadge({ status }: { status: string }) {

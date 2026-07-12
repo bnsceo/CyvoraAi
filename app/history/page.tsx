@@ -106,19 +106,19 @@ export default function HistoryPage() {
           ) : null}
         </CyvoraPageHeader>
 
-        <section className="mt-6 cyvora-glass rounded-2xl p-5 md:p-6">
+        <section className="cyvora-glass mt-6 rounded-2xl p-5 md:p-6">
           <div className="grid gap-3 md:grid-cols-[1fr_220px]">
             <input
               type="text"
               placeholder="Search objectives"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="rounded-xl border border-white/10 bg-slate-900/80 p-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/60"
+              className="w-full rounded-xl p-3 text-sm"
             />
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="rounded-xl border border-white/10 bg-slate-900/80 p-3 text-sm text-white outline-none focus:border-cyan-300/60"
+              className="w-full rounded-xl p-3 text-sm"
             >
               <option value="all">All statuses</option>
               <option value="pending">Pending</option>
@@ -131,7 +131,7 @@ export default function HistoryPage() {
             {loading ? (
               <p className="text-sm text-slate-400">Loading history...</p>
             ) : missions.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-slate-400">
+              <p className="cyvora-tactile rounded-xl p-5 text-sm text-slate-400">
                 No missions found.
               </p>
             ) : (
@@ -166,7 +166,7 @@ export default function HistoryPage() {
 
       {selectedMission && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm md:items-center md:p-4">
-          <div className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-blue-950/40 md:rounded-2xl md:p-6">
+          <div className="cyvora-glass-strong max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl p-5 md:rounded-2xl md:p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold">Mission details</h2>
@@ -192,12 +192,12 @@ export default function HistoryPage() {
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => reloadMission(selectedMission)}
-              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
-            >
-              Load into Mission Control
-            </button>
+                <button
+                  onClick={() => reloadMission(selectedMission)}
+                  className="cyvora-chip mt-5 inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-cyan-50 transition hover:translate-y-[-1px]"
+                >
+                  Load into Mission Control
+                </button>
           </div>
         </div>
       )}
