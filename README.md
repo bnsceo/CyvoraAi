@@ -1,7 +1,7 @@
 # Cyvora
 
 <p align="center">
-  <img src="./public/cyvora-logo.png" alt="Cyvora logo" width="360" />
+  <img src="./public/cyvora-logo.png" alt="Cyvora logo" width="720" />
 </p>
 
 Cyvora is an AI Command Center for founder-led operations: a dashboard for turning objectives into companies, departments, teams, agents, tasks, connectors, and outputs.
