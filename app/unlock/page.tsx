@@ -14,6 +14,7 @@ function UnlockShell({ nextPath }: { nextPath: string }) {
     <div className="min-h-screen bg-[#070b12] px-4 py-10 text-white">
       <div className="cyvora-glass-strong mx-auto max-w-md rounded-3xl p-6">
         <div className="flex items-center gap-3">
+          <img src="/cyvora-header-logo.png" alt="Cyvora" className="h-10 w-auto" />
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">Private tunnel</p>
             <h1 className="text-2xl font-semibold">Unlock Cyvora</h1>
@@ -34,14 +35,14 @@ function UnlockShell({ nextPath }: { nextPath: string }) {
             autoCapitalize="none"
             autoCorrect="off"
             enterKeyHint="done"
-            className="mt-5 w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/60"
+            className="mt-5 w-full px-4 py-3 text-sm"
           />
 
           <input type="hidden" name="next" value={nextPath} />
 
           <button
             type="submit"
-            className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+            className="cyvora-chip mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-cyan-50 transition hover:translate-y-[-1px]"
           >
             Unlock
           </button>
