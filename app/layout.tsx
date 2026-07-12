@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import packageJson from "../package.json";
 import "./globals.css";
 import MobileDock from "@/components/MobileDock";
 import PwaBootstrap from "@/components/PwaBootstrap";
+
+const buildHash = process.env.NEXT_PUBLIC_BUILD_HASH || process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || "local-dev";
 
 export const metadata: Metadata = {
   title: "Cyvora · AI Command Center",
@@ -25,7 +28,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col overflow-x-hidden pb-24 md:pb-0">
         {process.env.NODE_ENV === 'production' ? <PwaBootstrap /> : null}
         {children}
-        <div className="fixed inset-x-0 top-0 z-[60] border-b border-cyan-300/15 bg-slate-950/95 px-4 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur md:hidden">
+        <div className="cyvora-glass-strong fixed inset-x-0 top-0 z-[60] border-x-0 border-t-0 px-4 py-2 md:hidden">
           <div className="mx-auto flex max-w-7xl items-center gap-3">
             <img src="/cyvora-header-logo.png" alt="Cyvora" className="h-9 w-auto shrink-0" />
             <div className="leading-tight">
@@ -34,11 +37,17 @@ export default function RootLayout({
             </div>
           </div>
         </div>
-        <footer className="border-t border-white/10 bg-slate-950/80 px-4 py-4 text-center text-xs text-slate-500">
+        <footer className="cyvora-glass-strong border-x-0 border-b-0 px-4 py-4 text-center text-xs text-slate-500">
           <div className="mx-auto flex flex-wrap items-center justify-center gap-3">
             <div className="flex items-center gap-2">
               <img src="/cyvora-header-logo.png" alt="Cyvora" className="h-5 w-auto" />
               <span>Created by Anderson · Founder · Cyvora</span>
+            </div>
+            <div className="cyvora-chip rounded-full px-3 py-1 text-[11px] text-slate-300">
+              v{packageJson.version} · build {buildHash}
+            </div>
+            <div className="cyvora-chip rounded-full px-3 py-1 text-[11px] text-slate-300">
+              Approvals · audit trail · rollback
             </div>
             <form action="/api/logout" method="post">
               <button

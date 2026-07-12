@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getRuntimeModeInfo } from '@/lib/runtimeMode';
@@ -7,6 +8,25 @@ import { getRuntimeModeInfo } from '@/lib/runtimeMode';
 export default function NavBar() {
   const pathname = usePathname();
   const runtime = getRuntimeModeInfo();
+  const [avgLatency, setAvgLatency] = useState<string>('—');
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/analytics')
+      .then((response) => response.json())
+      .then((data: { averageResponseTime?: string }) => {
+        if (alive && data.averageResponseTime) {
+          setAvgLatency(data.averageResponseTime);
+        }
+      })
+      .catch(() => {
+        if (alive) setAvgLatency('n/a');
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const links = [
     { href: '/', label: 'Command Center' },
@@ -51,6 +71,13 @@ export default function NavBar() {
           {runtime.label}
           <span className="hidden text-emerald-100/70 sm:inline">·</span>
           <span className="hidden max-w-[18rem] truncate sm:inline">{runtime.description}</span>
+        </div>
+
+        <div className="cyvora-chip flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-slate-200">
+          <span className="h-2 w-2 rounded-full bg-cyan-300" />
+          System health nominal
+          <span className="hidden text-slate-400 sm:inline">·</span>
+          <span className="hidden sm:inline">Avg latency {avgLatency}</span>
         </div>
       </div>
     </nav>

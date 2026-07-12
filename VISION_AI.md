@@ -99,6 +99,41 @@ The worker should not depend on an HTTP request staying alive.
 
 ---
 
+## Institutional-grade enforcement
+
+Cyvora should present itself as an operating system with explicit standards, not a loose dashboard shell.
+
+### Visual precision
+
+- Use the 8px grid everywhere.
+- Keep typography restrained and legible.
+- Use semantic tokens for colors and borders.
+- Keep borders visible on every interactive surface.
+- Use extrusion for control surfaces and restrained glass overlays for panels, drawers, and headers.
+
+### Operational clarity
+
+- Show current runtime mode in the top bar.
+- Show audit context with timestamps and actor labels.
+- Never hide failures behind generic messages.
+- Prefer skeletons over spinners.
+- Keep empty states actionable.
+
+### Trust signals
+
+- Surface version and build hash in the UI.
+- Surface health indicators where they matter.
+- Keep compliance language in docs and footer messaging when applicable.
+
+### Code and runtime discipline
+
+- Validate API input/output.
+- Log every state mutation with a run identifier and timestamp.
+- Keep execution gated by approval and runtime plan equality.
+- Reject unsafe autonomy that bypasses the harness.
+
+---
+
 ## Production direction
 
 The best current path is a single persistent container with:
@@ -134,4 +169,3 @@ Do not optimize for “fully autonomous” before the worker is real and the app
 Build the harness first.
 Then build the loop.
 Then harden the production boundary.
-

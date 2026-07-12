@@ -6,6 +6,8 @@
 
 Cyvora is an AI Command Center for founder-led operations: an operating system for turning objectives into companies, departments, teams, agents, tasks, connectors, and outputs.
 
+The visual language intentionally combines skeuomorphic extrusion with restrained glass overlays so the interface feels physical, premium, and operational rather than decorative.
+
 ## What this project does
 
 - captures a business objective from the founder
