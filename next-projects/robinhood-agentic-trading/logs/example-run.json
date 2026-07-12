@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-07-11T00:00:00Z",
+  "mode": "dry-run",
+  "watcher_summary": "No live market data in dry-run mode.",
+  "strategy_output": [
+    {
+      "symbol": "SPY",
+      "action": "skip",
+      "reason": "Dry-run placeholder"
+    }
+  ],
+  "risk_result": {
+    "status": "reject",
+    "reason": "Dry-run mode does not place orders."
+  },
+  "human_decision": "reject",
+  "final_result": "no_trade"
+}
+
