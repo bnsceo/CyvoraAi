@@ -4,7 +4,6 @@ export const AUTH_COOKIE_NAME = 'cyvora_session';
 const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 
 const encoder = new TextEncoder();
-const decoder = new TextDecoder();
 
 function base64UrlEncode(bytes: Uint8Array): string {
   let binary = '';

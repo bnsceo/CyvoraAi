@@ -171,10 +171,6 @@ export default function Home() {
   const [mobileDetailKind, setMobileDetailKind] = useState<'company' | 'connector' | 'task' | 'output'>('company');
   const [shareLink, setShareLink] = useState('');
   const [urlHydrated, setUrlHydrated] = useState(false);
-  const [expandedCompanies, setExpandedCompanies] = useState<number[]>([]);
-  const [expandedDepartments, setExpandedDepartments] = useState<number[]>([]);
-  const [expandedTeams, setExpandedTeams] = useState<number[]>([]);
-  const [expandedAgents, setExpandedAgents] = useState<number[]>([]);
   const [prefs, setPrefs] = useState<DashboardPrefs>({
     compactFeed: false,
     showVisionBridge: false,
@@ -206,7 +202,6 @@ export default function Home() {
       null,
     [executionRuns, selectedExecutionRunId]
   );
-  const selectedRuntimePlan = selectedExecutionRun?.runtime_plan || null;
   const selectedConnector = useMemo(
     () => activeConnectors.find((connector: any) => connector.id === selectedConnectorId) || activeConnectors[0] || null,
     [activeConnectors, selectedConnectorId]
@@ -445,9 +440,6 @@ export default function Home() {
     setSelectedConnectorId(firstConnector?.id || null);
     setSelectedTaskId(firstTask?.id || null);
     setSelectedOutputId(firstOutput?.id || null);
-    setExpandedCompanies((current) =>
-      current.includes(activeCompanyDetail.id) ? current : [...current, activeCompanyDetail.id]
-    );
   }, [activeCompanyDetail, selectedDepartmentId, selectedTeamId, selectedAgentId]);
 
   useEffect(() => {
@@ -678,48 +670,6 @@ export default function Home() {
     }
   };
 
-  const copySelectedRunPlan = async () => {
-    if (typeof window === 'undefined' || !selectedExecutionRun || !selectedRuntimePlan) return;
-    const planText = [
-      `Goal: ${selectedExecutionRun.goal}`,
-      `Sandbox scope: ${selectedRuntimePlan.sandbox_scope.join(' | ')}`,
-      `Permissions: ${selectedRuntimePlan.permissions.join(' | ')}`,
-      `Validation checks: ${selectedRuntimePlan.validation_checks.join(' | ')}`,
-      `Rollback path: ${selectedRuntimePlan.rollback_path.join(' | ')}`,
-      `Token ceiling: ${selectedRuntimePlan.token_cost_ceiling.tokens}`,
-      `Cost ceiling: ${selectedRuntimePlan.token_cost_ceiling.cost_usd}`,
-    ].join('\n');
-    try {
-      await navigator.clipboard.writeText(planText);
-      alert('Runtime plan copied');
-    } catch {
-      alert(planText);
-    }
-  };
-
-  const handleRollbackRun = async (run: ExecutionRun) => {
-    const reason = window.prompt(`Rollback run #${run.id}. Enter a reason:`, 'Founder requested rollback');
-    if (reason === null) return;
-
-    try {
-      const res = await fetch(`/api/execution-runs/${run.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'rollback', reason }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Failed to rollback run');
-        return;
-      }
-      await fetchExecutionRuns();
-      await fetchHeadquarters();
-      alert(`Run #${run.id} rolled back`);
-    } catch {
-      alert('Failed to rollback run');
-    }
-  };
-
   const handleResetDemo = async () => {
     try {
       const res = await fetch('/api/demo/reset', { method: 'POST' });
@@ -734,28 +684,6 @@ export default function Home() {
       alert('Demo showcase reset');
     } catch {
       alert('Failed to reset demo showcase');
-    }
-  };
-
-  const handleApprove = async (action: 'decree' | 'abandon') => {
-    if (!briefing) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, objective: briefing.objective }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setBriefing(data);
-      } else {
-        alert(`Error: ${data.error}`);
-      }
-    } catch {
-      alert('Failed to approve mission');
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -794,10 +722,6 @@ export default function Home() {
       setShowCreateTenant(false);
       await switchTenant(newTenantName.trim());
     }
-  };
-
-  const toggleExpanded = (value: number, current: number[], setCurrent: (value: number[]) => void) => {
-    setCurrent(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
   };
 
   return (
@@ -1994,30 +1918,6 @@ function DetailPanel({
   );
 }
 
-function ExecutionMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="cyvora-tactile rounded-xl p-3">
-      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-1 text-sm leading-6 text-white">{value}</p>
-    </div>
-  );
-}
-
-function RuntimePlanBlock({ label, values }: { label: string; values: string[] }) {
-  return (
-    <div className="cyvora-glass rounded-xl p-3">
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {values.map((value) => (
-          <span key={value} className="cyvora-chip rounded-full px-3 py-1 text-xs text-slate-200">
-            {value}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function ExecutionBadge({ status }: { status: string }) {
   const style =
     status === 'completed'
@@ -2028,89 +1928,6 @@ function ExecutionBadge({ status }: { status: string }) {
           ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-200'
           : 'border-amber-300/20 bg-amber-300/10 text-amber-200';
   return <span className={`rounded-full border px-3 py-1 text-xs ${style}`}>{status}</span>;
-}
-
-function ControlSurfaceSection({
-  title,
-  subtitle,
-  items,
-  selectedId,
-  emptyLabel,
-  renderLabel,
-  renderMeta,
-  onSelect,
-  detail,
-}: {
-  title: string;
-  subtitle: string;
-  items: any[];
-  selectedId: number | null;
-  emptyLabel: string;
-  renderLabel: (item: any) => string;
-  renderMeta: (item: any) => string;
-  onSelect: (item: any) => void;
-  detail: { label: string; description: string; badges: string[] } | null;
-}) {
-  return (
-    <div className="cyvora-glass rounded-xl p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-white">{title}</p>
-          <p className="mt-1 text-xs text-slate-400">{subtitle}</p>
-        </div>
-        <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">
-          {items.length}
-        </span>
-      </div>
-
-      <div className="mt-3 space-y-2">
-        {items.length ? (
-          items.map((item) => {
-            const key = item.id ?? renderLabel(item);
-            const active = selectedId === item.id;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onSelect(item)}
-                className={`w-full rounded-lg border px-3 py-3 text-left transition ${
-                  active ? 'border-cyan-300/40 bg-cyan-300/10' : 'cyvora-chip hover:border-cyan-300/25'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-white">{renderLabel(item)}</p>
-                    <p className="mt-1 text-xs text-slate-400">{renderMeta(item)}</p>
-                  </div>
-                  <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                    {active ? 'selected' : 'view'}
-                  </span>
-                </div>
-              </button>
-            );
-          })
-        ) : (
-          <p className="cyvora-tactile rounded-lg px-3 py-3 text-sm text-slate-500">
-            {emptyLabel}
-          </p>
-        )}
-      </div>
-
-      {detail && (
-        <div className="cyvora-glass mt-3 rounded-xl p-4">
-          <p className="text-sm font-semibold text-white">{detail.label}</p>
-          <p className="mt-2 text-xs leading-5 text-slate-400">{detail.description}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {detail.badges.map((badge) => (
-              <span key={badge} className="cyvora-chip rounded-full px-2 py-1 text-[11px] text-slate-300">
-                {badge}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 function CountPill({ value }: { value: string }) {

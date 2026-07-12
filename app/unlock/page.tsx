@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Suspense } from 'react';
 import UnlockForm from './UnlockForm';
 
@@ -14,7 +15,7 @@ function UnlockShell({ nextPath }: { nextPath: string }) {
     <div className="min-h-screen bg-[#070b12] px-4 py-10 text-white">
       <div className="cyvora-glass-strong mx-auto max-w-md rounded-3xl p-6">
         <div className="flex items-center gap-3">
-          <img src="/cyvora-header-logo.png" alt="Cyvora" className="h-10 w-auto" />
+          <Image src="/cyvora-header-logo.png" alt="Cyvora" width={176} height={40} className="h-10 w-auto" />
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">Private tunnel</p>
             <h1 className="text-2xl font-semibold">Unlock Cyvora</h1>
