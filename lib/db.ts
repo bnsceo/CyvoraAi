@@ -642,6 +642,25 @@ export function getApprovals(company_id: number): Promise<any[]> {
   });
 }
 
+export function updateApprovalStatus(data: {
+  id: number;
+  company_id: number;
+  status: string;
+}): Promise<void> {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `UPDATE approvals
+       SET status = ?, updated_at = ?
+       WHERE id = ? AND company_id = ?`,
+      [data.status, new Date().toISOString(), data.id, data.company_id],
+      (err) => {
+        if (err) reject(err);
+        else resolve();
+      }
+    );
+  });
+}
+
 export function saveOutput(data: {
   company_id: number;
   task_id?: number;

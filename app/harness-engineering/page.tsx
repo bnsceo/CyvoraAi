@@ -235,7 +235,7 @@ export default function SelfCodingPage() {
         alert(data.error || 'Failed to start execution');
         return;
       }
-      alert(`Execution started for request #${data.harness_request_id}`);
+      alert(`Execution queued for request #${data.harness_request_id}`);
     } catch {
       alert('Failed to start execution');
     }

@@ -1,19 +1,23 @@
 # Cyvora Fly.io deployment runbook
 
-This is the first production deployment path for Cyvora.
+This is the current production path for Cyvora.
 
 ## Why this path
 
 - SQLite stays on disk.
-- The app can run as one persistent container.
-- The current execution model can keep using a local worker process.
-- Auth and billing can be added after the app is externally reachable.
+- The app runs as one persistent container.
+- The worker loop runs beside the Next.js server.
+- The control plane and execution plane stay in the same runtime for now.
 
 ## What the repo now includes
 
-- `Dockerfile` — container build for the Next.js app and Python runtime
+- `Dockerfile` — container build for the Next.js app and Python worker
 - `fly.toml` — Fly app configuration and persistent volume mount
-- `lib/db.ts` — SQLite now resolves under the mounted workspace root
+- `worker/supervisor_router.py` — task-level worker loop
+- `scripts/entrypoint.sh` — starts the app and worker together
+- `scripts/worker-loop.sh` — polls for approved tasks
+- `personas/` — minimal agent prompts for worker resolution
+- `lib/db.ts` — SQLite resolves under the mounted workspace root
 
 ## Required Fly resources
 
@@ -33,9 +37,19 @@ fly deploy
 
 The container expects:
 
-- `JARVIS_WORKSPACE_ROOT=/data/cyvora`
+- `JARVIS_WORKSPACE_ROOT=/app`
+- `MISSIONS_DB_PATH=/app/data/missions.db`
+- `AGENCY_AGENTS_DIR=/app/personas`
 
 ## Operational note
 
-The deployment target is ready for the current architecture, but the actual worker engine is still a follow-up step. Until that worker exists, execution routes should stay blocked or mocked by design.
+The worker only claims tasks whose matching approval row is `approved`.
+
+That means the approval button in the company dashboard is now part of the execution path, not just a visual cue.
+
+## Important warning
+
+The app is still on the local-first side of production readiness.
+
+Auth, billing, connector secrets, and sandboxing still need to be added before Cyvora should be exposed as a real multi-tenant production system.
 

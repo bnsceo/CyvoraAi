@@ -6,11 +6,16 @@ primary_region = "ewr"
 
 [env]
   NODE_ENV = "production"
-  JARVIS_WORKSPACE_ROOT = "/data/cyvora"
+  JARVIS_WORKSPACE_ROOT = "/app"
+  MISSIONS_DB_PATH = "/app/data/missions.db"
+  AGENCY_AGENTS_DIR = "/app/personas"
+  WORKER_POLL_INTERVAL_SECONDS = "15"
+  MOCK_MODE = "true"
+  ALLOW_PAID_AI = "false"
 
 [[mounts]]
   source = "cyvora_data"
-  destination = "/data/cyvora"
+  destination = "/app/data"
 
 [http_service]
   internal_port = 3000
@@ -18,3 +23,7 @@ primary_region = "ewr"
   auto_stop_machines = false
   auto_start_machines = true
   min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

@@ -13,6 +13,7 @@ export default function CompanyDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activePanel, setActivePanel] = useState<'connectors' | 'tasks' | 'outputs'>('tasks');
+  const [updatingApprovalId, setUpdatingApprovalId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -47,6 +48,29 @@ export default function CompanyDetailPage() {
   const connectorCount = company?.connectors?.length || 0;
   const taskCount = company?.tasks?.length || 0;
   const outputCount = company?.outputs?.length || 0;
+
+  const approveApproval = async (approvalId: number) => {
+    if (!company) return;
+    setUpdatingApprovalId(approvalId);
+    try {
+      const res = await fetch(`/api/approvals/${approvalId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to approve item');
+        return;
+      }
+      const refreshed = await fetch(`/api/companies/${id}`).then((response) => response.json());
+      setCompany(refreshed);
+    } catch {
+      alert('Failed to approve item');
+    } finally {
+      setUpdatingApprovalId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -162,9 +186,23 @@ export default function CompanyDetailPage() {
                 {company.approvals?.length ? (
                   company.approvals.map((approval: any) => (
                     <div key={approval.id} className="cyvora-tactile rounded-xl p-4">
-                      <p className="text-sm font-medium text-amber-100">{approval.title}</p>
-                      <p className="mt-1 text-xs leading-5 text-amber-50/80">{approval.summary}</p>
-                      <p className="mt-2 text-xs text-amber-100/70">{approval.status} · {approval.risk_level} risk</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-amber-100">{approval.title}</p>
+                          <p className="mt-1 text-xs leading-5 text-amber-50/80">{approval.summary}</p>
+                          <p className="mt-2 text-xs text-amber-100/70">{approval.status} · {approval.risk_level} risk</p>
+                        </div>
+                        {approval.status === 'pending' ? (
+                          <button
+                            type="button"
+                            onClick={() => approveApproval(approval.id)}
+                            disabled={updatingApprovalId === approval.id}
+                            className="cyvora-chip rounded-xl px-3 py-2 text-xs text-slate-200 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {updatingApprovalId === approval.id ? 'Approving…' : 'Approve'}
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   ))
                 ) : (

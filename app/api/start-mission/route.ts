@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { sendSSEEvent } from '../stream/route';
@@ -18,9 +17,8 @@ import {
   saveExecutionRun,
   updateExecutionRun,
 } from '@/lib/db';
-import { backendRoot, workspaceRoot } from '@/lib/paths';
 import { inferMissionBlueprint } from '@/lib/missionBlueprint';
-import { getRuntimeModeInfo, shouldUseMockMode, isDemoMode } from '@/lib/runtimeMode';
+import { getRuntimeModeInfo, isDemoMode } from '@/lib/runtimeMode';
 import { loadHarnessApprovalSnapshot } from '@/lib/harnessApproval';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -82,139 +80,78 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       goal: approvedRequestSnapshot.request,
       runtime_plan: approvedRequestSnapshot.runtime_plan,
       runtime_mode: runtimeMode.mode,
-      status: 'running',
+      status: 'queued',
       rollback_state: 'ready',
       paid_ai: runtimeMode.allowPaidAI,
       mock_mode: runtimeMode.mockMode,
     });
 
-    const projectRoot = workspaceRoot;
-    const scriptPath = path.join(backendRoot, 'app', 'agents', 'orchestrator', 'supervisor_router.py');
+    const blueprint = inferMissionBlueprint(goal);
+    const tenantBriefing = path.join(/*turbopackIgnore: true*/ tenantPath, 'briefings', 'mission_briefing.md');
+    const tenantStatus = path.join(/*turbopackIgnore: true*/ tenantPath, 'briefings', 'status.json');
+    const tenantMissionId = path.join(/*turbopackIgnore: true*/ tenantPath, 'briefings', 'mission_id.json');
+    const briefingContent = buildMissionBriefing(goal, blueprint);
 
-    if (!fs.existsSync(scriptPath)) {
-      return NextResponse.json({ error: 'Supervisor script not found' }, { status: 404 });
+    fs.writeFileSync(tenantBriefing, briefingContent);
+    fs.writeFileSync(
+      tenantStatus,
+      JSON.stringify(
+        {
+          status: 'queued',
+          objective: goal,
+          timestamp: new Date().toISOString(),
+        },
+        null,
+        2
+      )
+    );
+
+    const briefing = parseBriefing(briefingContent);
+    briefing.status = 'queued';
+
+    const missionId = await saveMission({
+      objective: briefing.objective || goal,
+      agents: briefing.agents,
+      status: 'queued',
+      timestamp: new Date().toISOString(),
+      briefing_file: tenantBriefing,
+    });
+    fs.writeFileSync(tenantMissionId, JSON.stringify({ id: missionId }));
+    briefing.id = missionId;
+
+    let companyId: number | null = null;
+    try {
+      companyId = await seedMissionOrganization({
+        tenant,
+        objective: briefing.objective || goal,
+        briefing,
+      });
+    } catch (orgError) {
+      console.error('Failed to seed mission organization:', orgError);
     }
 
-    sendSSEEvent({ type: 'start', message: '🚀 Mission started', goal });
+    sendSSEEvent({ type: 'start', message: '🚀 Mission queued for worker processing', goal });
+    sendSSEEvent({ type: 'done', briefing });
 
-    const pythonProcess = spawn('python3', [scriptPath, goal], {
-      cwd: projectRoot,
-      env: {
-        ...process.env,
-        PYTHONUNBUFFERED: '1',
-        // Local synthetic results are the safe default. Paid OpenRouter calls
-        // require an explicit operator opt-in.
-        MOCK_MODE: shouldUseMockMode() ? 'true' : 'false',
-      },
+    await updateExecutionRun({
+      id: executionRunId,
+      status: 'queued',
+      rollback_state: 'ready',
+      mission_id: missionId || undefined,
+      company_id: companyId || undefined,
     });
 
-    pythonProcess.stdout.on('data', (data) => {
-      const lines = data.toString().split('\n').filter(Boolean);
-      for (const line of lines) {
-        sendSSEEvent({ type: 'log', message: line });
-      }
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      const lines = data.toString().split('\n').filter(Boolean);
-      for (const line of lines) {
-        sendSSEEvent({ type: 'error', message: line });
-      }
-    });
-
-    return new Promise<NextResponse>((resolve) => {
-      pythonProcess.on('close', async (code) => {
-        if (code === 0) {
-          const rootBriefing = path.join(projectRoot, 'mission_briefing.md');
-          const tenantBriefing = path.join(/*turbopackIgnore: true*/ tenantPath, 'briefings', 'mission_briefing.md');
-          const rootStatus = path.join(projectRoot, 'mission_status.json');
-          const tenantStatus = path.join(/*turbopackIgnore: true*/ tenantPath, 'briefings', 'status.json');
-
-          if (fs.existsSync(rootBriefing)) {
-            fs.copyFileSync(rootBriefing, tenantBriefing);
-          }
-          if (fs.existsSync(rootStatus)) {
-            fs.copyFileSync(rootStatus, tenantStatus);
-          }
-
-          let content = '';
-          try {
-            content = fs.readFileSync(tenantBriefing, 'utf-8');
-          } catch {
-            content = 'No briefing generated.';
-          }
-
-          const briefing = parseBriefing(content);
-          let status = 'pending';
-          try {
-            const statusData = JSON.parse(fs.readFileSync(tenantStatus, 'utf-8'));
-            status = statusData.status;
-          } catch {}
-
-          // Save to history database and write mission ID file
-          let missionId = null;
-          try {
-            missionId = await saveMission({
-              objective: briefing.objective,
-              agents: briefing.agents,
-              status: status,
-              timestamp: new Date().toISOString(),
-              briefing_file: tenantBriefing,
-            });
-            // Write the mission ID to a file so the approve route can find it
-            const idPath = path.join(/*turbopackIgnore: true*/ tenantPath, 'briefings', 'mission_id.json');
-            fs.writeFileSync(idPath, JSON.stringify({ id: missionId }));
-              briefing.id = missionId;
-            } catch (dbError) {
-              console.error('Failed to save mission to history:', dbError);
-            }
-
-            let companyId: number | null = null;
-            try {
-              companyId = await seedMissionOrganization({
-                tenant,
-                objective: briefing.objective || goal,
-                briefing,
-              });
-            } catch (orgError) {
-              console.error('Failed to seed mission organization:', orgError);
-            }
-
-          briefing.status = status;
-          sendSSEEvent({ type: 'done', briefing });
-          await updateExecutionRun({
-            id: executionRunId,
-            status: 'completed',
-            rollback_state: 'ready',
-            mission_id: missionId || undefined,
-            company_id: companyId || undefined,
-            completed: true,
-          });
-          resolve(
-            NextResponse.json({
-              success: true,
-              briefing,
-              id: missionId,
-              company_id: companyId,
-              runtime_mode: runtimeMode.mode,
-              paid_ai: runtimeMode.allowPaidAI,
-              mock_mode: runtimeMode.mockMode,
-              harness_request_id: requestedId,
-              execution_run_id: executionRunId,
-            })
-          );
-        } else {
-          sendSSEEvent({ type: 'error', message: `Process exited with code ${code}` });
-          await updateExecutionRun({
-            id: executionRunId,
-            status: 'failed',
-            rollback_state: 'required',
-            error_message: `Process exited with code ${code}`,
-            completed: true,
-          });
-          resolve(NextResponse.json({ error: 'Mission failed' }, { status: 500 }));
-        }
-      });
+    return NextResponse.json({
+      success: true,
+      briefing,
+      id: missionId,
+      company_id: companyId,
+      runtime_mode: runtimeMode.mode,
+      paid_ai: runtimeMode.allowPaidAI,
+      mock_mode: runtimeMode.mockMode,
+      harness_request_id: requestedId,
+      execution_run_id: executionRunId,
+      status: 'queued',
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -251,6 +188,33 @@ function parseBriefing(content: string): {
   }
   if (currentAgent) agents.push(currentAgent);
   return { objective, agents, status: 'pending', timestamp: new Date().toISOString() };
+}
+
+function buildMissionBriefing(goal: string, blueprint: ReturnType<typeof inferMissionBlueprint>): string {
+  const sections = [
+    '# Mission Briefing',
+    '',
+    `**Objective:** ${goal}`,
+    '',
+    '**Status:** queued',
+    '',
+    '## Executive Summary',
+    `The Executive AI expanded the objective into ${blueprint.companyName}.`,
+    '',
+  ];
+
+  for (const department of blueprint.departments) {
+    for (const team of department.teams) {
+      for (const agent of team.agents) {
+        sections.push(`## Agent: ${agent.name}`);
+        sections.push(`**Task:** ${agent.taskType}`);
+        sections.push(`**Output:** Worker-ready context seeded for ${department.name} / ${team.name}.`);
+        sections.push('');
+      }
+    }
+  }
+
+  return sections.join('\n');
 }
 
 async function seedMissionOrganization({

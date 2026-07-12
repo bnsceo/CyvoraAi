@@ -1,25 +1,46 @@
-FROM node:20-bookworm-slim
+# syntax=docker/dockerfile:1
 
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV JARVIS_WORKSPACE_ROOT=/data/cyvora
+FROM node:20-bookworm-slim AS builder
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 make g++ \
-  && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
 COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+RUN npm run build
 
-RUN mkdir -p /data/cyvora/data /data/cyvora/tenants /data/cyvora/logs /data/cyvora/backend/app/agents/orchestrator \
-  && chown -R node:node /app /data/cyvora
+FROM node:20-bookworm-slim AS runner
 
-USER node
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install --no-cache-dir --break-system-packages anthropic
+
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV JARVIS_WORKSPACE_ROOT=/app
+ENV MISSIONS_DB_PATH=/app/data/missions.db
+ENV AGENCY_AGENTS_DIR=/app/personas
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/worker ./worker
+COPY --from=builder /app/personas ./personas
+COPY --from=builder /app/scripts ./scripts
+
+RUN chmod +x ./scripts/entrypoint.sh ./scripts/worker-loop.sh \
+  && mkdir -p /app/data /app/tenants /app/logs
+
+VOLUME ["/app/data", "/app/tenants", "/app/logs"]
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+ENTRYPOINT ["./scripts/entrypoint.sh"]
