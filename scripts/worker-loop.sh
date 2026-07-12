@@ -3,9 +3,9 @@
 set -uo pipefail
 
 POLL_INTERVAL_SECONDS="${WORKER_POLL_INTERVAL_SECONDS:-15}"
-SUPERVISOR_PATH="${SUPERVISOR_PATH:-/app/worker/supervisor_router.py}"
+SUPERVISOR_PATH="${SUPERVISOR_PATH:-/app/worker/execution_worker.py}"
 
-echo "[worker] starting poll loop, interval=${POLL_INTERVAL_SECONDS}s db=${MISSIONS_DB_PATH:-unset}"
+echo "[worker] starting poll loop, interval=${POLL_INTERVAL_SECONDS}s db=${MISSIONS_DB_PATH:-unset} worker=${SUPERVISOR_PATH}"
 
 while true; do
   python3 "$SUPERVISOR_PATH"

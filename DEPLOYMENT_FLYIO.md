@@ -13,9 +13,9 @@ This is the current production path for Cyvora.
 
 - `Dockerfile` — container build for the Next.js app and Python worker
 - `fly.toml` — Fly app configuration and persistent volume mount
-- `worker/supervisor_router.py` — task-level worker loop
+- `worker/execution_worker.py` — queued execution-run worker loop
 - `scripts/entrypoint.sh` — starts the app and worker together
-- `scripts/worker-loop.sh` — polls for approved tasks
+- `scripts/worker-loop.sh` — polls for queued execution runs
 - `personas/` — minimal agent prompts for worker resolution
 - `lib/db.ts` — SQLite resolves under the mounted workspace root
 
@@ -47,7 +47,7 @@ The container expects:
 
 ## Operational note
 
-The worker only claims tasks whose matching approval row is `approved`.
+The worker first claims a queued execution run, verifies the approved harness snapshot, and then claims the first approved task for that run's company.
 
 That means the approval button in the company dashboard is now part of the execution path, not just a visual cue.
 

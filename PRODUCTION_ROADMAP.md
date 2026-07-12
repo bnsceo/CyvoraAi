@@ -15,7 +15,7 @@ This file tracks the remaining work needed to move Cyvora from local/demo mode i
 | Production deployment for real external access | in progress | Target chosen: Fly.io with persistent storage. |
 | Production auth | in progress | Signed session cookie, unlock gate, logout, and protected routes are now in place. |
 | Billing controls | in progress | Runtime plan ceilings and execution blocking are now enforced. |
-| One real agent runtime integration | in progress | Worker loop and persona bundle are now in the repo. |
+| One real agent runtime integration | in progress | Worker loop now claims queued execution runs, verifies approved snapshots, and resolves a persona bundle. |
 | Long-term production mode | pending | Needs a stable mode flag, safeguards, and rollout rules. |
 
 ## Current product posture
@@ -50,4 +50,4 @@ Nothing irreversible should run unless:
 - persistent container
 - SQLite on volume
 - background worker loop
-- approval-gated task execution
+- approval-gated execution runs and task execution

@@ -25,6 +25,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV JARVIS_WORKSPACE_ROOT=/app
 ENV MISSIONS_DB_PATH=/app/data/missions.db
+ENV TENANTS_ROOT=/app/tenants
 ENV AGENCY_AGENTS_DIR=/app/personas
 
 COPY --from=builder /app/node_modules ./node_modules
