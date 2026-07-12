@@ -125,6 +125,18 @@ Cyvora should present itself as an operating system with explicit standards, not
 - Surface health indicators where they matter.
 - Keep compliance language in docs and footer messaging when applicable.
 
+### Documentation as proof
+
+Documentation in Cyvora is not decorative.
+
+It is a trust signal that proves the system can be audited, maintained, and operated safely over time.
+
+- README explains the operating model and runtime modes.
+- VISION_AI documents the product contract.
+- DEPLOYMENT_FLYIO explains the execution path.
+- PRODUCTION_ROADMAP explains the remaining production work.
+- SECURITY and compliance pages explain who can use the system and under what conditions.
+
 ### Code and runtime discipline
 
 - Validate API input/output.

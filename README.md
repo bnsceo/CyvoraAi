@@ -8,6 +8,8 @@ Cyvora is an AI Command Center for founder-led operations: an operating system f
 
 The visual language intentionally combines skeuomorphic extrusion with restrained glass overlays so the interface feels physical, premium, and operational rather than decorative.
 
+Cyvora uses Space Grotesk for the primary UI voice and JetBrains Mono for system data, logs, and execution detail.
+
 ## What this project does
 
 - captures a business objective from the founder
@@ -27,6 +29,15 @@ Cyvora is designed so the founder and builder can use it locally for free while 
 - Enterprise tier: custom deployment, SLA, and dedicated runtime
 
 The monetization model is based on infrastructure, safety, and production capacity rather than generic AI chat.
+
+## Documentation as trust signal
+
+In Cyvora, documentation is not just a developer reference. It is evidence that the system is safe, auditable, and maintainable.
+
+- The vision document defines the operational model.
+- The README explains the user-facing intent and runtime modes.
+- The deployment notes explain where execution lives and how it is gated.
+- The roadmap documents what remains before production.
 
 ## Run locally
 

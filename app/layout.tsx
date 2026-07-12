@@ -1,8 +1,21 @@
 import type { Metadata } from "next";
+import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import packageJson from "../package.json";
 import "./globals.css";
 import MobileDock from "@/components/MobileDock";
 import PwaBootstrap from "@/components/PwaBootstrap";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 const buildHash = process.env.NEXT_PUBLIC_BUILD_HASH || process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || "local-dev";
 
@@ -18,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className={`${spaceGrotesk.variable} ${jetBrainsMono.variable} h-full antialiased`}>
       <head>
         <meta name="theme-color" content="#070b12" />
         <link rel="manifest" href="/manifest.webmanifest" />
