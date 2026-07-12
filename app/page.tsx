@@ -177,7 +177,7 @@ export default function Home() {
   const [expandedAgents, setExpandedAgents] = useState<number[]>([]);
   const [prefs, setPrefs] = useState<DashboardPrefs>({
     compactFeed: false,
-    showVisionBridge: true,
+    showVisionBridge: false,
     emphasizeApprovals: true,
   });
 
@@ -218,6 +218,20 @@ export default function Home() {
   const selectedOutput = useMemo(
     () => activeOutputsList.find((output: any) => output.id === selectedOutputId) || activeOutputsList[0] || null,
     [activeOutputsList, selectedOutputId]
+  );
+  const recentCompanies = headquarters?.companies?.slice(0, 3) || [];
+  const recentRequests = selfCodingRequests.slice(0, 3);
+  const recentRuns = executionRuns.slice(0, 3);
+  const recentOutputs = activeOutputsList.slice(0, 3);
+  const blueprintDepartmentCount = missionBlueprint.departments.length;
+  const blueprintTeamCount = missionBlueprint.departments.reduce(
+    (total, department) => total + department.teams.length,
+    0
+  );
+  const blueprintAgentCount = missionBlueprint.departments.reduce(
+    (total, department) =>
+      total + department.teams.reduce((teamTotal, team) => teamTotal + team.agents.length, 0),
+    0
   );
   const selectedNodeTrail = useMemo(
     () =>
@@ -893,8 +907,8 @@ export default function Home() {
                     onChange={() => setPrefs((current) => ({ ...current, compactFeed: !current.compactFeed }))}
                   />
                   <ToggleRow
-                    label="Vision bridge"
-                    description="Show the founder-vision to company mapping panel."
+                    label="Deep detail"
+                    description="Show the expanded hierarchy and execution panels."
                     checked={prefs.showVisionBridge}
                     onChange={() =>
                       setPrefs((current) => ({ ...current, showVisionBridge: !current.showVisionBridge }))
@@ -1084,25 +1098,24 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+        <section className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <div className="cyvora-glass-strong rounded-2xl p-5 md:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
-                  Mission Composer
+                  Mission intake
                 </p>
-                <h2 className="mt-2 text-[20px] font-semibold">State a business objective once</h2>
+                <h2 className="mt-2 text-[20px] font-semibold">State one business objective</h2>
                 <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
-                  The founder should describe the business outcome, not individual agents. The
-                  Executive AI expands that objective into companies, departments, teams, agents,
-                  tasks, connectors, and outputs.
+                  The founder describes the outcome once. Cyvora expands it into companies,
+                  departments, teams, agents, tasks, connectors, and outputs.
                 </p>
               </div>
               <Pill tone="emerald">Founder intent first</Pill>
             </div>
 
             <textarea
-            className="cyvora-tactile mt-5 min-h-40 w-full rounded-2xl p-4 text-sm leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/60"
+              className="cyvora-tactile mt-5 min-h-40 w-full rounded-2xl p-4 text-sm leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/60"
               placeholder="Example: I want to build a YouTube business."
               value={missionDraft}
               onChange={(event) => setMissionDraft(event.target.value)}
@@ -1139,26 +1152,32 @@ export default function Home() {
                 {isDemoModeActive ? 'Demo is read-only' : submitting ? 'Starting...' : 'Launch mission'}
               </button>
             </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <MiniMetric label="Departments" value={String(blueprintDepartmentCount)} />
+              <MiniMetric label="Teams" value={String(blueprintTeamCount)} />
+              <MiniMetric label="Agents" value={String(blueprintAgentCount)} />
+            </div>
           </div>
 
           <div className="cyvora-glass rounded-2xl p-5 md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
-                  Mission growth preview
+                  Executive briefing
                 </p>
                 <h2 className="mt-2 text-[20px] font-semibold">The next objective grows the org</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-400">
-                  This preview is derived from the founder’s draft so the hierarchy shows the
-                  shape of the business before the mission is launched.
+                  This preview stays compact on the home page. Full hierarchy and execution detail
+                  live in the dedicated pages.
                 </p>
               </div>
               <Pill tone="amber">{missionBlueprint.companyName}</Pill>
             </div>
 
-            <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_360px]">
-              <div className="cyvora-glass rounded-2xl p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+            <div className="mt-5 space-y-3">
+              <div className="cyvora-tactile rounded-2xl p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm text-slate-400">Planned company</p>
                     <h3 className="text-lg font-semibold text-white">{missionBlueprint.companyName}</h3>
@@ -1168,60 +1187,51 @@ export default function Home() {
                     objective-linked
                   </span>
                 </div>
-                <div className="mt-4 space-y-3">
-                  {missionBlueprint.departments.map((department) => (
-                    <div key={department.name} className="cyvora-tactile rounded-xl p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-cyan-100">{department.name}</p>
-                          <p className="mt-1 text-xs leading-5 text-slate-400">{department.description}</p>
-                        </div>
-                        <span className="rounded-full border border-white/10 px-2 py-1 text-xs text-slate-300">
-                          {department.teams.length} teams
-                        </span>
-                      </div>
-                      <div className="mt-3 space-y-2">
-                        {department.teams.map((team) => (
-                          <div key={team.name} className="cyvora-glass rounded-lg p-3">
-                            <p className="text-sm text-white">{team.name}</p>
-                            <p className="mt-1 text-xs text-slate-400">{team.description}</p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {team.agents.map((agent) => (
-                                <span
-                                  key={agent.name}
-                                  className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-[11px] text-cyan-100"
-                                >
-                                  {agent.name}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {missionBlueprint.departments.slice(0, 3).map((department) => (
+                    <div key={department.name} className="cyvora-glass rounded-xl p-3">
+                      <p className="text-sm font-semibold text-cyan-100">{department.name}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-400">{department.description}</p>
+                      <p className="mt-2 text-xs text-slate-500">
+                        {department.teams.length} teams ·{' '}
+                        {department.teams.reduce((count, team) => count + team.agents.length, 0)} agents
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <DetailPanel
                   title="Connectors"
-                  subtitle="Interfaces this objective needs"
-                  items={missionBlueprint.connectors}
+                  subtitle="Needed to run"
+                  items={missionBlueprint.connectors.slice(0, 3)}
                   emptyLabel="No connector inference yet"
                 />
                 <DetailPanel
                   title="Tasks"
-                  subtitle="Live work queue"
-                  items={(activeCompanyDetail?.tasks || []).slice(0, 5).map((task) => `${task.title} · ${task.workflow_stage}`)}
-                  emptyLabel={companyLoading ? 'Loading company tasks...' : 'No tasks in this company yet'}
+                  subtitle="Current queue"
+                  items={activeTasksList.slice(0, 3).map((task) => `${task.title} · ${task.workflow_stage}`)}
+                  emptyLabel={companyLoading ? 'Loading tasks...' : 'No tasks yet'}
                 />
                 <DetailPanel
-                  title="Outputs"
-                  subtitle="Artifacts and deliverables"
-                  items={(activeCompanyDetail?.outputs || []).slice(0, 5).map((output) => `${output.title} · ${output.status}`)}
-                  emptyLabel={companyLoading ? 'Loading outputs...' : 'No outputs in this company yet'}
+                  title="Links"
+                  subtitle="Drill-down pages"
+                  items={['/headquarters', '/harness-engineering', '/security']}
+                  emptyLabel="No links"
                 />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Link href="/headquarters" className={actionButtonOutline}>
+                  Open HQ
+                </Link>
+                <Link href="/harness-engineering" className={actionButtonOutline}>
+                  Open Harness
+                </Link>
+                <Link href="/security" className={actionButtonOutline}>
+                  Open War Room
+                </Link>
               </div>
             </div>
           </div>
@@ -1275,78 +1285,30 @@ export default function Home() {
           </section>
         )}
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.28fr)_420px]">
+        <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_0.95fr]">
           <div className="cyvora-glass-strong rounded-2xl p-5 md:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
-                  Live hierarchy
+                  Active companies
                 </p>
-                <h2 className="mt-2 text-[20px] font-semibold">Headquarters rendered from actual data</h2>
+                <h2 className="mt-2 text-[20px] font-semibold">Current operating portfolio</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-400">
-                  Companies expand into departments, departments contain teams, and teams hold the
-                  agents. Click any layer to drill down.
+                  The home page stays compact. Use Headquarters for full hierarchy drill-down.
                 </p>
               </div>
               <Pill tone="cyan">{headquarters?.executive_ai?.status || 'online'}</Pill>
             </div>
 
-            <div className="mt-5 cyvora-tactile rounded-2xl p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-cyan-200">Mission-to-hierarchy bridge</p>
-                  <h3 className="mt-2 text-lg font-semibold text-white">{missionBlueprint.companyName}</h3>
-                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300">
-                    Current objective: <span className="text-white">{missionDraft}</span>
-                    {' '}→ this draft expands into {missionBlueprint.departments.length} departments,
-                    {missionBlueprint.departments.reduce((total, department) => total + department.teams.length, 0)} teams,
-                    and {missionBlueprint.departments.reduce(
-                      (total, department) =>
-                        total + department.teams.reduce((teamTotal, team) => teamTotal + team.agents.length, 0),
-                      0
-                    )} agents before launch.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Pill tone="emerald">Draft linked</Pill>
-                  <Pill tone="amber">{missionBlueprint.connectors.length} connectors</Pill>
-                </div>
-              </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                {missionBlueprint.departments.slice(0, 3).map((department) => (
-                  <div key={department.name} className="cyvora-glass rounded-xl p-3">
-                    <p className="text-sm font-medium text-cyan-100">{department.name}</p>
-                    <p className="mt-1 text-xs text-slate-400">{department.description}</p>
-                    <p className="mt-2 text-xs text-slate-500">
-                      {department.teams.length} teams ·{' '}
-                      {department.teams.reduce((count, team) => count + team.agents.length, 0)} agents
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {headquarters?.companies?.length ? (
-              <div className="mt-5 space-y-4">
-                {headquarters.companies.map((company) => {
-                  const companyOpen = expandedCompanies.includes(company.id);
+            <div className="mt-5 grid gap-3">
+              {recentCompanies.length ? (
+                recentCompanies.map((company) => {
+                  const departmentCount = company.departments?.length || 0;
+                  const teamCount = countTeams(company.departments);
+                  const agentCount = countAgents(company.departments);
                   return (
-                    <div
-                      key={company.id}
-                      className={`rounded-2xl border p-4 transition ${
-                        selectedCompanyId === company.id
-                          ? 'border-cyan-300/40 bg-cyan-300/10'
-                          : 'cyvora-tactile'
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCompanyId(company.id);
-                          toggleExpanded(company.id, expandedCompanies, setExpandedCompanies);
-                        }}
-                        className="flex w-full items-start justify-between gap-4 text-left"
-                      >
+                    <div key={company.id} className="cyvora-tactile rounded-2xl p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="flex items-start gap-3">
                           <div
                             className="mt-1 h-10 w-10 rounded-xl ring-1 ring-white/10"
@@ -1357,297 +1319,107 @@ export default function Home() {
                             <p className="mt-1 text-xs leading-5 text-slate-400">{company.description}</p>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          <CountPill value={`${company.departments?.length || 0} departments`} />
-                          <CountPill value={`${countTeams(company.departments)} teams`} />
-                          <CountPill value={`${countAgents(company.departments)} agents`} />
-                          <span className="cyvora-chip rounded-full px-3 py-1 text-xs text-slate-300">
-                            {companyOpen ? 'Collapse' : 'Expand'}
-                          </span>
-                        </div>
-                      </button>
-
-                      {companyOpen && (
-                        <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                          {company.departments?.length ? (
-                            company.departments.map((department) => {
-                              const departmentOpen = expandedDepartments.includes(department.id);
-                              return (
-                                <div key={department.id} className="cyvora-glass rounded-xl p-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedDepartmentId(department.id);
-                                      toggleExpanded(department.id, expandedDepartments, setExpandedDepartments);
-                                    }}
-                                    className="flex w-full items-center justify-between gap-4 text-left"
-                                  >
-                                    <div>
-                                      <p className="text-sm font-medium text-cyan-100">{department.name}</p>
-                                      <p className="mt-1 text-xs leading-5 text-slate-400">{department.description}</p>
-                                    </div>
-                                    <span className="cyvora-chip rounded-full px-3 py-1 text-xs text-slate-300">
-                                      {departmentOpen ? 'Collapse' : 'Expand'} · {department.teams?.length || 0} teams
-                                    </span>
-                                  </button>
-
-                                  {departmentOpen && (
-                                    <div className="mt-3 grid gap-3 xl:grid-cols-2">
-                                      {department.teams?.map((team) => {
-                                        const teamOpen = expandedTeams.includes(team.id);
-                                        return (
-                                          <div key={team.id} className="cyvora-tactile rounded-xl p-3">
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setSelectedTeamId(team.id);
-                                                toggleExpanded(team.id, expandedTeams, setExpandedTeams);
-                                              }}
-                                              className="flex w-full items-start justify-between gap-4 text-left"
-                                            >
-                                              <div>
-                                                <p className="text-sm font-medium text-white">{team.name}</p>
-                                                <p className="mt-1 text-xs leading-5 text-slate-400">{team.description}</p>
-                                              </div>
-                                              <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2 py-1 text-xs text-cyan-100">
-                                                {teamOpen ? 'Collapse' : 'Expand'} · {team.agents?.length || 0}
-                                              </span>
-                                            </button>
-
-                                            {teamOpen && (
-                                              <div className="mt-3 flex flex-wrap gap-2">
-                                                {team.agents?.length ? (
-                                                  team.agents.map((agent) => {
-                                                    const agentOpen = expandedAgents.includes(agent.id);
-                                                    return (
-                                                      <button
-                                                        key={agent.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                          setSelectedAgentId(agent.id);
-                                                          toggleExpanded(agent.id, expandedAgents, setExpandedAgents);
-                                                        }}
-                                                        className={`rounded-full border px-3 py-1 text-xs transition ${
-                                                          selectedAgentId === agent.id
-                                                            ? 'border-emerald-300/30 bg-emerald-300/20 text-emerald-100'
-                                                            : 'cyvora-chip text-slate-200'
-                                                        }`}
-                                                      >
-                                                        {agent.agent_name}
-                                                        <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                                                          {agentOpen ? 'open' : agent.task_type || 'agent'}
-                                                        </span>
-                                                      </button>
-                                                    );
-                                                  })
-                                                ) : (
-                                                  <span className="text-xs text-slate-500">No agents assigned.</span>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <p className="cyvora-tactile rounded-xl p-4 text-sm text-slate-400">
-                              No departments yet.
-                            </p>
-                          )}
-                        </div>
-                      )}
+                        <Link
+                          href={`/headquarters${selectedCompanyId === company.id ? `?company=${company.id}` : ''}`}
+                          className="cyvora-chip rounded-full px-3 py-1 text-xs text-slate-200 transition"
+                        >
+                          Open
+                        </Link>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <CountPill value={`${departmentCount} departments`} />
+                        <CountPill value={`${teamCount} teams`} />
+                        <CountPill value={`${agentCount} agents`} />
+                      </div>
                     </div>
                   );
-                })}
-              </div>
-            ) : (
-              <p className="cyvora-tactile mt-5 rounded-xl p-5 text-sm text-slate-400">
-                No headquarters data yet.
-              </p>
-            )}
+                })
+              ) : (
+                <p className="cyvora-tactile rounded-xl p-4 text-sm text-slate-400">
+                  No headquarters data yet.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="cyvora-glass rounded-2xl p-5 md:p-6">
-            <div className="mb-4 flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold">Operations console</h2>
-                <p className="mt-1 text-sm text-slate-400">Selected company, connectors, tasks, and outputs</p>
+                <h2 className="text-lg font-semibold">Live operations</h2>
+                <p className="mt-1 text-sm text-slate-400">Mission, approvals, logs, and current runtime state</p>
               </div>
-              {isStreaming && (
+              {isStreaming ? (
                 <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs text-emerald-200">
                   Streaming
                 </span>
-              )}
+              ) : null}
             </div>
 
-            <div className="space-y-3">
-              <div className="cyvora-tactile rounded-xl p-4">
+            <div className="mt-4 space-y-3">
+              <div className="cyvora-tactile rounded-2xl p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
-                      Current mission
-                    </p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Current mission</p>
                     <h3 className="mt-2 text-lg font-semibold text-white">
                       {loading ? 'Loading mission state...' : briefing?.objective || 'No active mission'}
                     </h3>
                   </div>
                   <StatusPill status={missionStatus} />
                 </div>
-
-                {briefing && briefing.agents.length > 0 ? (
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {briefing.agents.map((agent, index) => (
-                      <div
-                        key={`${agent.name}-${index}`}
-                        className="cyvora-tactile rounded-xl p-4"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-white">{agent.name}</p>
-                          <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2 py-1 text-xs text-cyan-100">
-                            assigned
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs leading-5 text-slate-400">{agent.task}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="cyvora-tactile mt-4 rounded-xl p-4 text-sm leading-6 text-slate-400">
-                    No active agent team is deployed. Start with a business objective and the Executive AI will create the plan.
-                  </p>
-                )}
-
-                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-                  <button
-                    onClick={() => handleApprove('decree')}
-                    disabled={!briefing || briefing.status === 'approved' || submitting}
-                    className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Decree mission
-                  </button>
-                  <button
-                    onClick={() => handleApprove('abandon')}
-                    disabled={!briefing || briefing.status === 'abandoned' || submitting}
-                    className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-4 py-2 text-sm font-semibold text-rose-100 transition hover:bg-rose-300/15 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Abandon
-                  </button>
-                  <a href="/api/briefing" className="text-sm text-cyan-200 underline-offset-4 hover:underline">
-                    Raw briefing
-                  </a>
-                </div>
-              </div>
-
-              <DetailPanel
-                title="Selected node"
-                subtitle="Where you are in the org"
-                items={selectedNodeTrail}
-                emptyLabel="Select a company, department, team, or agent"
-              />
-              <div className="cyvora-tactile rounded-xl p-4">
-                <p className="text-sm font-semibold text-white">{activeCompanyDetail?.name || 'No company selected'}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-400">
-                  {activeCompanyDetail?.description || 'Choose a live company in Headquarters to inspect its tasks and outputs.'}
+                <p className="mt-3 text-sm leading-6 text-slate-400">
+                  {briefing && briefing.agents.length > 0
+                    ? `${briefing.agents.length} agents assigned · ${pendingApprovals} approvals waiting`
+                    : 'Start with a business objective and the Executive AI will create the plan.'}
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Pill tone="cyan">{activeCompanyDetail?.departments?.length || 0} departments</Pill>
-                  <Pill tone="emerald">{activeConnectors.length} connectors</Pill>
-                  <Pill tone="blue">{activeTasksList.length} tasks</Pill>
-                  <Pill tone="amber">{activeOutputsList.length} outputs</Pill>
-                </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Link
-                    href={`/headquarters${selectedCompanyId ? `?company=${selectedCompanyId}` : ''}`}
-                    className="cyvora-chip rounded-xl px-3 py-2 text-xs text-slate-200 transition"
-                  >
-                    Open HQ view
+                  <Link href="/headquarters" className={actionButtonOutline}>
+                    Headquarters
                   </Link>
-                  <button
-                    type="button"
-                    onClick={copyShareableView}
-                    className="cyvora-chip rounded-xl px-3 py-2 text-xs text-slate-200 transition"
-                  >
-                    Share current link
-                  </button>
+                  <Link href="/harness-engineering" className={actionButtonOutline}>
+                    Harness
+                  </Link>
+                  <Link href="/security" className={actionButtonOutline}>
+                    War Room
+                  </Link>
                 </div>
               </div>
-              <ControlSurfaceSection
-                title="Connectors"
-                subtitle="Live system links"
-                items={activeConnectors}
-                selectedId={selectedConnectorId}
-                emptyLabel={companyLoading ? 'Loading connectors...' : 'No connectors yet'}
-                renderLabel={(connector) => connector.name}
-                renderMeta={(connector) => `${connector.connector_type} · ${connector.status}`}
-                onSelect={(connector) => setSelectedConnectorId(connector.id)}
-                detail={
-                  selectedConnector
-                    ? {
-                        label: selectedConnector.name,
-                        description: selectedConnector.summary || 'No connector summary.',
-                        badges: [selectedConnector.connector_type, selectedConnector.status],
-                      }
-                    : null
-                }
-              />
-              <ControlSurfaceSection
-                title="Tasks"
-                subtitle="Live work queue"
-                items={activeTasksList.slice(0, prefs.compactFeed ? 3 : 6)}
-                selectedId={selectedTaskId}
-                emptyLabel={companyLoading ? 'Loading tasks...' : 'No tasks yet'}
-                renderLabel={(task) => task.title}
-                renderMeta={(task) => `${task.workflow_stage} · ${task.priority} · ${task.status}`}
-                onSelect={(task) => setSelectedTaskId(task.id)}
-                detail={
-                  selectedTask
-                    ? {
-                        label: selectedTask.title,
-                        description: selectedTask.description || 'No task description.',
-                        badges: [selectedTask.workflow_stage, selectedTask.status],
-                      }
-                    : null
-                }
-              />
-              <ControlSurfaceSection
-                title="Outputs"
-                subtitle="Artifacts produced by the company"
-                items={activeOutputsList.slice(0, prefs.compactFeed ? 3 : 6)}
-                selectedId={selectedOutputId}
-                emptyLabel={companyLoading ? 'Loading outputs...' : 'No outputs yet'}
-                renderLabel={(output) => output.title}
-                renderMeta={(output) => `${output.output_type} · ${output.status}`}
-                onSelect={(output) => setSelectedOutputId(output.id)}
-                detail={
-                  selectedOutput
-                    ? {
-                        label: selectedOutput.title,
-                        description: selectedOutput.summary || 'No output summary.',
-                        badges: [selectedOutput.output_type, selectedOutput.status],
-                      }
-                    : null
-                }
-              />
-              <DetailPanel
-                title="Mission preview"
-                subtitle="Objective-linked growth"
-                items={missionBlueprint.connectors}
-                emptyLabel="No connectors inferred"
-              />
-              <div className="max-h-[240px] space-y-3 overflow-y-auto pr-1">
-                {logs.length > 0 ? (
-                  logs.slice(prefs.compactFeed ? -6 : -12).map((log, index) => (
-                    <ActivityRow key={`${log}-${index}`} title={log} meta="Mission stream" tone="cyan" />
-                  ))
-                ) : (
-                  operations.map((item) => (
-                    <ActivityRow key={item.title} title={item.title} meta={item.meta} tone={item.tone} />
-                  ))
-                )}
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <DetailPanel
+                  title="Approvals"
+                  subtitle="Waiting on founder"
+                  items={recentRequests.map((request) => `${request.request} · ${request.approval_state}`)}
+                  emptyLabel={recentRequests.length ? 'No approvals pending' : 'No requests yet'}
+                />
+                <DetailPanel
+                  title="Recent outputs"
+                  subtitle="Latest artifacts"
+                  items={recentOutputs.map((output) => `${output.title} · ${output.status}`)}
+                  emptyLabel={companyLoading ? 'Loading outputs...' : 'No outputs yet'}
+                />
+              </div>
+
+              <div className="cyvora-tactile rounded-2xl p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{activeCompanyDetail?.name || 'No company selected'}</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-400">
+                      {activeCompanyDetail?.description || 'Choose a live company in Headquarters to inspect deeper data.'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Pill tone="cyan">{activeCompanyDetail?.departments?.length || 0} departments</Pill>
+                    <Pill tone="emerald">{activeTasksList.length} tasks</Pill>
+                    <Pill tone="amber">{activeOutputsList.length} outputs</Pill>
+                  </div>
+                </div>
+                <div className="mt-4 max-h-40 space-y-2 overflow-y-auto pr-1">
+                  {(logs.length > 0 ? logs.slice(prefs.compactFeed ? -4 : -6) : operations.map((item) => `${item.title} · ${item.meta}`)).map(
+                    (entry, index) => (
+                      <ActivityRow key={`${entry}-${index}`} title={entry} meta="Mission stream" tone="cyan" />
+                    )
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1684,24 +1456,25 @@ export default function Home() {
           />
         </section>
 
-        <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
+        <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.95fr]">
           <div className="cyvora-glass-strong rounded-2xl p-5 md:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold">Harness Engineering queue</h2>
-                <p className="mt-1 text-sm text-slate-400">Factory-building requests and approval state</p>
+                <h2 className="text-lg font-semibold">Approvals and risks</h2>
+                <p className="mt-1 text-sm text-slate-400">Factory-building requests stay visible before execution</p>
               </div>
               <Link href="/harness-engineering" className={`${actionButtonOutline} px-3 py-2`}>
                 Manage
               </Link>
             </div>
+
             <div className="mt-4 space-y-3">
-              {selfCodingRequests.length === 0 ? (
+              {recentRequests.length === 0 ? (
                 <p className="cyvora-tactile rounded-xl p-4 text-sm text-slate-400">
                   No Harness Engineering requests yet.
                 </p>
               ) : (
-                selfCodingRequests.slice(0, 3).map((request) => (
+                recentRequests.map((request) => (
                   <div key={request.id} className="cyvora-tactile rounded-xl p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <p className="max-w-xl text-sm font-medium text-white">{request.request}</p>
@@ -1719,164 +1492,61 @@ export default function Home() {
           </div>
 
           <div className="cyvora-glass rounded-2xl p-5 md:p-6">
-            <h2 className="text-lg font-semibold">Analytics snapshot</h2>
-            <p className="mt-1 text-sm text-slate-400">Agent and platform performance</p>
-              <button onClick={handleAnalytics} className={`mt-5 w-full ${actionButtonOutline} justify-start`}>
-                Open current analytics report
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Recent runs</h2>
+                <p className="mt-1 text-sm text-slate-400">Execution timeline and rollback state</p>
+              </div>
+              <button onClick={handleAnalytics} className={`${actionButtonOutline} px-3 py-2`}>
+                Analytics
               </button>
+            </div>
+
             <div className="mt-4 grid grid-cols-2 gap-3">
               <MiniMetric label="API cost" value="$0.00" />
               <MiniMetric label="Health" value="Nominal" />
               <MiniMetric label="Runtime" value="2.3s" />
               <MiniMetric label="Failures" value="0" />
             </div>
-          </div>
-        </section>
 
-        <section className="cyvora-glass-strong mt-6 rounded-2xl p-5 md:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
-                Execution control
-              </p>
-              <h2 className="mt-2 text-[20px] font-semibold">Approved run history</h2>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
-                This is the execution record tied to approved harness plans. It shows the exact plan
-                snapshot, runtime mode, and rollback posture used for each run.
-              </p>
-            </div>
-            <Pill tone="cyan">
-              {executionRuns.length} run{executionRuns.length === 1 ? '' : 's'}
-            </Pill>
-          </div>
-
-          <div className="mt-5 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="cyvora-glass rounded-2xl p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">Run detail</p>
-                  <p className="mt-1 text-xs text-slate-400">Inspect one approved execution at a time</p>
-                </div>
-                {selectedExecutionRun ? (
-                  <div className="flex flex-wrap gap-2">
-                    <ExecutionBadge status={selectedExecutionRun.status} />
-                    <button
-                      onClick={() => handleRollbackRun(selectedExecutionRun)}
-                      disabled={selectedExecutionRun.status === 'rolled_back'}
-                    className="inline-flex min-h-9 items-center justify-center rounded-xl cyvora-chip px-3 py-1.5 text-xs font-semibold text-rose-100 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Rollback
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-
-              {selectedExecutionRun ? (
-                <div className="mt-4 space-y-3">
-                  <ExecutionMetric label="Goal" value={selectedExecutionRun.goal} />
-                  <ExecutionMetric label="Run mode" value={selectedExecutionRun.runtime_mode} />
-                  <ExecutionMetric label="Status" value={selectedExecutionRun.status} />
-                  <ExecutionMetric label="Rollback" value={selectedExecutionRun.rollback_state} />
-                  <ExecutionMetric
-                    label="Plan ceiling"
-                    value={`${selectedExecutionRun.runtime_plan.token_cost_ceiling.tokens} tokens · ${selectedExecutionRun.runtime_plan.token_cost_ceiling.cost_usd}`}
-                  />
-                  <ExecutionMetric
-                    label="Approval lock"
-                    value={`${selectedExecutionRun.paid_ai ? 'Paid AI on' : 'Paid AI off'} · ${selectedExecutionRun.mock_mode ? 'mock-safe' : 'live'}`}
-                  />
-                  {selectedRuntimePlan ? (
-                    <div className="cyvora-tactile rounded-xl p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-white">Approved runtime plan</p>
-                          <p className="mt-1 text-xs text-slate-400">
-                            Exact plan used by execution. This is the founder-visible harness contract.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={copySelectedRunPlan}
-                        className="inline-flex min-h-9 items-center justify-center rounded-xl cyvora-chip px-3 py-1.5 text-xs text-slate-200 transition"
-                        >
-                          Copy plan
-                        </button>
-                      </div>
-                      <div className="mt-4 grid gap-3">
-                        <RuntimePlanBlock label="Sandbox scope" values={selectedRuntimePlan.sandbox_scope} />
-                        <RuntimePlanBlock label="Permissions" values={selectedRuntimePlan.permissions} />
-                        <RuntimePlanBlock label="Validation checks" values={selectedRuntimePlan.validation_checks} />
-                        <RuntimePlanBlock label="Rollback path" values={selectedRuntimePlan.rollback_path} />
-                      </div>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        <MiniMetric label="Token ceiling" value={`${selectedRuntimePlan.token_cost_ceiling.tokens}`} />
-                        <MiniMetric label="Cost ceiling" value={selectedRuntimePlan.token_cost_ceiling.cost_usd} />
-                      </div>
-                      {selectedRuntimePlan.runtime_notes.length ? (
-                        <div className="cyvora-glass mt-4 rounded-xl p-3">
-                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Runtime notes</p>
-                          <div className="mt-2 space-y-2">
-                            {selectedRuntimePlan.runtime_notes.map((note) => (
-                              <p key={note} className="text-sm leading-6 text-slate-200">
-                                {note}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="cyvora-tactile mt-4 rounded-xl p-4 text-sm text-slate-500">
-                  No approved execution has started yet.
+            <div className="mt-4 space-y-3">
+              {recentRuns.length === 0 ? (
+                <p className="cyvora-tactile rounded-xl p-4 text-sm text-slate-500">
+                  No execution records yet.
                 </p>
+              ) : (
+                recentRuns.map((run) => (
+                  <button
+                    key={run.id}
+                    onClick={() => setSelectedExecutionRunId(run.id)}
+                    className={`cyvora-tactile w-full rounded-xl p-4 text-left transition ${
+                      selectedExecutionRun?.id === run.id
+                        ? 'border-cyan-300/50 bg-cyan-300/10'
+                        : 'border-white/10 hover:border-cyan-300/30'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-white">{run.goal}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Run #{run.id} · request #{run.request_id} · {new Date(run.started_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <ExecutionBadge status={run.status} />
+                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">
+                          {run.rollback_state}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Pill tone="cyan">{run.runtime_mode}</Pill>
+                      <Pill tone="emerald">{run.mock_mode ? 'mock-safe' : 'live'}</Pill>
+                      <Pill tone="amber">{run.paid_ai ? 'paid ai enabled' : 'paid ai off'}</Pill>
+                    </div>
+                  </button>
+                ))
               )}
-            </div>
-
-            <div className="cyvora-tactile rounded-2xl p-4">
-              <p className="text-sm font-semibold text-white">Recent runs</p>
-              <p className="mt-1 text-xs text-slate-400">Execution timeline and rollback state</p>
-
-              <div className="mt-4 space-y-3">
-                {executionRuns.length === 0 ? (
-                  <p className="cyvora-tactile rounded-xl p-4 text-sm text-slate-500">
-                    No execution records yet.
-                  </p>
-                ) : (
-                  executionRuns.map((run) => (
-                    <button
-                      key={run.id}
-                      onClick={() => setSelectedExecutionRunId(run.id)}
-                      className={`cyvora-tactile w-full rounded-xl p-4 text-left transition ${
-                        selectedExecutionRun?.id === run.id
-                          ? 'border-cyan-300/50 bg-cyan-300/10'
-                          : 'border-white/10 hover:border-cyan-300/30'
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-white">{run.goal}</p>
-                          <p className="mt-1 text-xs text-slate-400">
-                            Run #{run.id} · request #{run.request_id} · {new Date(run.started_at).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <ExecutionBadge status={run.status} />
-                          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">
-                            {run.rollback_state}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Pill tone="cyan">{run.runtime_mode}</Pill>
-                        <Pill tone="emerald">{run.mock_mode ? 'mock-safe' : 'live'}</Pill>
-                        <Pill tone="amber">{run.paid_ai ? 'paid ai enabled' : 'paid ai off'}</Pill>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
             </div>
           </div>
         </section>
