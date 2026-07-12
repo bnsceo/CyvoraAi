@@ -3,6 +3,7 @@ name: Cyvora GitHub Pages
 on:
   push:
     branches:
+      - main
       - agent/canonical-repo-sync
   workflow_dispatch:
 
