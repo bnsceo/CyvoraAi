@@ -440,9 +440,9 @@
 
     .hero {
       display: grid;
-      grid-template-columns: minmax(0,1fr) auto;
+      grid-template-columns: minmax(0,1fr) minmax(300px, 350px);
       gap: 20px;
-      align-items: start;
+      align-items: center;
       padding: 26px;
       border-radius: var(--radius-xl);
       background: linear-gradient(145deg, #0f1727, #09111d);
@@ -517,7 +517,9 @@
     }
 
     .executive-card {
-      width: min(100%, 350px);
+      width: 100%;
+      max-width: 350px;
+      justify-self: end;
       padding: 18px;
       border-radius: 20px;
       border: 1px solid rgba(163,157,255,.18);
