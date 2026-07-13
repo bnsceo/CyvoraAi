@@ -119,3 +119,18 @@ http://localhost:8080/cyvora-full-app-showcase.html
 ## Phase 4 and Phase 5
 
 Cyvora now includes premium operating-system controls and a deterministic, zero-cost Executive AI blueprint workspace at `/executive-ai`. See `PHASE_4_5_OS_AND_EXECUTIVE_AI.md`.
+
+## Current product surfaces
+
+- `/` — compact founder launchpad
+- `/command-center` — system mode, founder overview, mission intake, approvals, quick actions, and hidden-by-default controls
+- `/briefing` — Executive Briefing
+- `/executive-ai` — deterministic $0 business blueprint generation
+- `/companies` — active companies and Company Engine templates
+- `/agents` — Agent Registry
+- `/headquarters` — organization map, live operations, and runtime posture
+- `/security` — War Room
+- `/history` — execution and audit history
+- `/harness-engineering` — software/runtime request workflow
+
+See `ROADMAP_TRACKER.md` and `PHASE_6_7_COMPANY_ENGINE_AGENT_REGISTRY.md` for the current implementation status.

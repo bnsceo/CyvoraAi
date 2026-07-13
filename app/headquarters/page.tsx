@@ -52,6 +52,7 @@ type HeadquartersData = {
     approvals?: number;
   };
   companies: Company[];
+  activity: { id: number; event_type: string; title: string; description?: string; created_at: string }[];
 };
 
 export default function HeadquartersPage() {
@@ -287,6 +288,14 @@ export default function HeadquartersPage() {
             {selectedCompany && <OrganizationMap company={selectedCompany} isDemoModeActive={isDemoModeActive} />}
           </section>
         )}
+
+        <section className="mt-6 grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
+          <article className="cyvora-glass rounded-3xl p-5 md:p-6">
+            <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.22em] text-cyan-200/70">Live operations</p><h2 className="mt-2 text-xl font-semibold text-white">Organization activity stream</h2><p className="mt-2 text-xs leading-6 text-slate-500">Operational depth belongs in Headquarters, not the Command Center.</p></div><span className="cyvora-chip px-3 py-2 text-[10px] text-emerald-200">Live</span></div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">{(data?.activity || []).slice(0, 8).map((event) => <div key={event.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"><div className="flex items-start gap-3"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(141,223,255,.65)]" /><div><strong className="text-xs text-slate-200">{event.title}</strong><p className="mt-1 text-[10px] leading-5 text-slate-500">{event.description || event.event_type}</p></div></div></div>)}{!data?.activity?.length ? <p className="rounded-2xl border border-dashed border-white/10 p-4 text-xs text-slate-500">No activity events yet.</p> : null}</div>
+          </article>
+          <article className="cyvora-glass rounded-3xl p-5 md:p-6"><p className="text-[10px] uppercase tracking-[0.22em] text-emerald-200/70">Runtime health</p><h2 className="mt-2 text-xl font-semibold text-white">Operating posture</h2><div className="mt-4 space-y-3"><HealthRow label="Executive AI" value={data?.executive_ai.status || 'unknown'} /><HealthRow label="Companies" value={String(data?.totals.companies || 0)} /><HealthRow label="Active agents" value={String(data?.totals.agents || 0)} /><HealthRow label="Queued tasks" value={String(data?.totals.tasks || 0)} /><HealthRow label="Pending approvals" value={String(data?.totals.approvals || 0)} /></div><div className="mt-5 flex flex-wrap gap-2"><Link href="/security" className="cyvora-chip px-4 py-2 text-xs text-amber-100">Open War Room</Link><Link href="/history" className="cyvora-chip px-4 py-2 text-xs text-slate-300">Open History</Link></div></article>
+        </section>
       </main>
 
       {mobileCompanyOpen && selectedCompany ? (
@@ -488,4 +497,9 @@ function countAgents(departments?: Department[]) {
       0
     ) || 0
   );
+}
+
+
+function HealthRow({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"><span className="text-xs text-slate-400">{label}</span><strong className="text-xs text-emerald-200">{value}</strong></div>;
 }

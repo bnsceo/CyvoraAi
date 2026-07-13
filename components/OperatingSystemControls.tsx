@@ -44,7 +44,7 @@ export default function OperatingSystemControls() {
   const [density, setDensity] = useState<Density>('comfortable');
   const [workspace, setWorkspace] = useState('default');
   const [savedLayouts, setSavedLayouts] = useState<string[]>([]);
-  const [dock, setDock] = useState<string[]>(['command', 'companies', 'executive', 'approvals', 'warroom']);
+  const [dock, setDock] = useState<string[]>(['home', 'command', 'executive', 'companies', 'warroom']);
   const [activity, setActivity] = useState(fallbackActivity);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function OperatingSystemControls() {
     document.documentElement.dataset.density = storedDensity;
     try {
       setSavedLayouts(JSON.parse(window.localStorage.getItem('cyvora.layouts') || '[]'));
-      setDock(JSON.parse(window.localStorage.getItem('cyvora.dock') || '["command","companies","executive","approvals","warroom"]'));
+      setDock(JSON.parse(window.localStorage.getItem('cyvora.dock') || '["home","command","executive","companies","warroom"]'));
     } catch {
       setSavedLayouts([]);
     }
@@ -118,11 +118,14 @@ export default function OperatingSystemControls() {
   }, [panel]);
 
   const commands = useMemo<CommandItem[]>(() => [
-    { id: 'command', label: 'Open Command Center', description: 'Founder priorities and active operations', href: '/', keywords: 'home mission dashboard' },
+    { id: 'home', label: 'Open Home', description: 'Compact founder launchpad', href: '/', keywords: 'home launchpad overview' },
+    { id: 'command', label: 'Open Command Center', description: 'Mission intake, approvals, and quick actions', href: '/command-center', keywords: 'mission approvals founder dashboard' },
     { id: 'executive', label: 'Ask Executive AI', description: 'Generate a deterministic business blueprint', href: '/executive-ai', keywords: 'executive ai blueprint company create', shortcut: 'E' },
-    { id: 'companies', label: 'Open Companies', description: 'Inspect AI-operated businesses', href: '/companies', keywords: 'companies businesses portfolio' },
-    { id: 'hq', label: 'Open Headquarters', description: 'Navigate the organization graph', href: '/headquarters', keywords: 'headquarters agents teams departments' },
-    { id: 'approvals', label: 'Review Approvals', description: 'Founder decisions and result acceptance', href: '/?view=approvals', keywords: 'approve review risk' },
+    { id: 'briefing', label: 'Open Executive Briefing', description: 'Objectives, risks, opportunities, and recommendations', href: '/briefing', keywords: 'briefing summary risk opportunity recommendation' },
+    { id: 'companies', label: 'Open Companies', description: 'Active businesses and company templates', href: '/companies', keywords: 'companies templates businesses portfolio' },
+    { id: 'agents', label: 'Open Agent Registry', description: 'Search digital employees and capabilities', href: '/agents', keywords: 'agents registry workforce persona skills' },
+    { id: 'hq', label: 'Open Headquarters', description: 'Organization graph and live operations', href: '/headquarters', keywords: 'headquarters agents teams departments operations' },
+    { id: 'approvals', label: 'Review Approvals', description: 'Founder decisions inside Command Center', href: '/command-center', keywords: 'approve review risk' },
     { id: 'harness', label: 'Open Harness', description: 'Software and runtime requests', href: '/harness-engineering', keywords: 'harness engineering code' },
     { id: 'warroom', label: 'Open War Room', description: 'Health, incidents, and recovery', href: '/security', keywords: 'war room incidents health security' },
     { id: 'history', label: 'Open History', description: 'Audit and execution timeline', href: '/history', keywords: 'history audit runs' },
@@ -217,7 +220,7 @@ export default function OperatingSystemControls() {
               <section><p className="cyvora-os-section-label">Theme</p><div className="grid grid-cols-3 gap-2">{(['midnight', 'deep', 'contrast'] as Theme[]).map((item) => <button key={item} onClick={() => chooseTheme(item)} className={`cyvora-os-choice ${theme === item ? 'is-selected' : ''}`}><span className={`cyvora-theme-swatch is-${item}`} /><strong className="capitalize">{item}</strong></button>)}</div></section>
               <section><p className="cyvora-os-section-label">Density</p><div className="grid grid-cols-2 gap-2">{(['comfortable', 'compact'] as Density[]).map((item) => <button key={item} onClick={() => chooseDensity(item)} className={`cyvora-os-choice ${density === item ? 'is-selected' : ''}`}><strong className="capitalize">{item}</strong><small>{item === 'compact' ? 'More information on screen' : 'Larger spacing and touch targets'}</small></button>)}</div></section>
               <section><div className="flex items-center justify-between gap-3"><p className="cyvora-os-section-label mb-0">Saved layouts</p><button onClick={saveLayout} className="cyvora-chip px-3 py-2 text-[10px] text-cyan-100">Save current</button></div><div className="mt-3 space-y-2">{savedLayouts.length ? savedLayouts.map((item) => <div key={item} className="cyvora-os-card"><div className="cyvora-os-status is-emerald" /><div><strong>{item}</strong><p>{theme} theme · {density} density</p></div></div>) : <p className="rounded-xl border border-dashed border-white/10 p-4 text-xs text-slate-500">No saved layouts yet.</p>}</div></section>
-              <section><p className="cyvora-os-section-label">Mobile dock</p><p className="mb-3 text-xs leading-6 text-slate-500">Pin three to five destinations. This preference stays local to the browser.</p><div className="grid grid-cols-2 gap-2">{[['command','Command'],['executive','Executive AI'],['companies','Companies'],['headquarters','Headquarters'],['approvals','Approvals'],['harness','Harness'],['warroom','War Room'],['history','History']].map(([id,label]) => <button key={id} onClick={() => toggleDock(id)} className={`cyvora-os-choice min-h-12 ${dock.includes(id) ? 'is-selected' : ''}`}><strong>{label}</strong><small>{dock.includes(id) ? 'Pinned' : 'Not pinned'}</small></button>)}</div></section>
+              <section><p className="cyvora-os-section-label">Mobile dock</p><p className="mb-3 text-xs leading-6 text-slate-500">Pin three to five destinations. This preference stays local to the browser.</p><div className="grid grid-cols-2 gap-2">{[['home','Home'],['command','Command'],['executive','Executive AI'],['briefing','Briefing'],['companies','Companies'],['agents','Agents'],['headquarters','Headquarters'],['harness','Harness'],['warroom','War Room'],['history','History']].map(([id,label]) => <button key={id} onClick={() => toggleDock(id)} className={`cyvora-os-choice min-h-12 ${dock.includes(id) ? 'is-selected' : ''}`}><strong>{label}</strong><small>{dock.includes(id) ? 'Pinned' : 'Not pinned'}</small></button>)}</div></section>
             </div>
           ) : null}
         </aside>

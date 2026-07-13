@@ -1,16 +1,35 @@
-import sqlite3 from 'sqlite3';
+import sqlite3, { type Database, type RunResult } from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { workspaceRoot } from './paths';
 
 const DB_PATH = path.join(/*turbopackIgnore: true*/ workspaceRoot, 'data', 'missions.db');
+const SKIP_DB_INIT = process.env.CYVORA_SKIP_DB_INIT === '1';
 
-const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+function createBuildDatabaseStub(): Database {
+  const stub: any = {};
+  const invoke = (args: any[], value?: unknown) => {
+    const callback = args.findLast((item) => typeof item === 'function');
+    if (callback) queueMicrotask(() => callback(null, value));
+  };
+  stub.run = (...args: any[]) => { invoke(args); return stub; };
+  stub.all = (...args: any[]) => { invoke(args, []); return stub; };
+  stub.get = (...args: any[]) => { invoke(args, undefined); return stub; };
+  stub.prepare = () => ({
+    run: (...args: any[]) => { invoke(args); return stub; },
+    finalize: (callback?: (error?: Error | null) => void) => { if (callback) queueMicrotask(() => callback(null)); },
+  });
+  stub.close = (callback?: (error?: Error | null) => void) => { if (callback) queueMicrotask(() => callback(null)); };
+  return stub as Database;
 }
 
-const db = new sqlite3.Database(DB_PATH);
+if (!SKIP_DB_INIT) {
+  const dataDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+}
+
+const sqliteModule = SKIP_DB_INIT ? null : sqlite3;
+const db: Database = SKIP_DB_INIT ? createBuildDatabaseStub() : new sqliteModule!.Database(DB_PATH);
 
 // --- Missions table (existing) ---
 db.run(`
@@ -300,12 +319,7 @@ function ensureColumn(table: string, column: string, definition: string): void {
     }
     if (rows.some((row) => row.name === column)) return;
     db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`, (alterErr) => {
-      if (
-        alterErr &&
-        !(alterErr instanceof Error && /duplicate column name/i.test(alterErr.message))
-      ) {
-        console.error(`[db] unable to add ${table}.${column}:`, alterErr);
-      }
+      if (alterErr) console.error(`[db] unable to add ${table}.${column}:`, alterErr);
     });
   });
 }
@@ -361,7 +375,7 @@ export function saveMission(data: {
       data.status,
       data.timestamp,
       data.briefing_file || null,
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -432,7 +446,7 @@ export function saveCompany(data: {
       data.brand_color || '#6366f1',
       new Date().toISOString(),
       'active',
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -475,7 +489,7 @@ export function saveDepartment(data: {
       data.name,
       data.description || '',
       new Date().toISOString(),
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -509,7 +523,7 @@ export function saveTeam(data: {
       data.name,
       data.description || '',
       new Date().toISOString(),
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -543,7 +557,7 @@ export function saveAgentAssignment(data: {
       data.agent_name,
       data.task_type || '',
       new Date().toISOString(),
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -594,7 +608,7 @@ export function saveSelfCodingRequest(data: {
       data.dissent || '',
       now,
       now,
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -641,7 +655,7 @@ export function updateSelfCodingApproval(data: {
         data.id,
         data.tenant,
       ],
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve();
       }
@@ -688,7 +702,7 @@ export function saveTask(data: {
       data.max_revisions || 2,
       now,
       now,
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -733,7 +747,7 @@ export function saveConnector(data: {
       data.summary || '',
       now,
       now,
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -782,7 +796,7 @@ export function saveApproval(data: {
       data.execution_run_id || null,
       now,
       now,
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -850,7 +864,7 @@ export function saveOutput(data: {
       data.status,
       data.summary || '',
       new Date().toISOString(),
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -885,7 +899,7 @@ export function saveActivityEvent(data: {
       data.title,
       data.description || '',
       new Date().toISOString(),
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -947,7 +961,7 @@ export function saveExecutionRun(data: {
       now,
       now,
       null,
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve(this.lastID);
       }
@@ -987,7 +1001,7 @@ export function updateExecutionRun(data: {
         now,
         data.id,
       ],
-      function (this: sqlite3.RunResult, err: Error | null) {
+      function (this: RunResult, err: Error | null) {
         if (err) reject(err);
         else resolve();
       }
