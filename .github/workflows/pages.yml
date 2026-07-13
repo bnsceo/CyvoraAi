@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - agent/canonical-repo-sync
   workflow_dispatch:
 
 permissions:
@@ -31,7 +30,8 @@ jobs:
         run: |
           rm -rf .github/pages
           mkdir -p .github/pages
-          cp docs/cyvora-full-app-showcase.html .github/pages/index.html
+          cp docs/index.html .github/pages/index.html
+          cp docs/product-tour.html .github/pages/product-tour.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
