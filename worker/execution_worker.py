@@ -32,12 +32,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from connectors import public_connector_status
+from policy import decide_execution_policy
+from providers import ModelRequest, get_provider, public_provider_status
+
 WORKSPACE_ROOT = Path(os.environ.get("JARVIS_WORKSPACE_ROOT", "/app"))
 DB_PATH = Path(os.environ.get("MISSIONS_DB_PATH", WORKSPACE_ROOT / "data" / "missions.db"))
 TENANTS_ROOT = Path(os.environ.get("TENANTS_ROOT", WORKSPACE_ROOT / "tenants"))
 PERSONAS_DIR = Path(os.environ.get("AGENCY_AGENTS_DIR", WORKSPACE_ROOT / "personas"))
-MOCK_MODE = os.environ.get("MOCK_MODE", "true").lower() in {"1", "true", "yes", "on"}
-MODEL = os.environ.get("SUPERVISOR_MODEL", "claude-sonnet-5")
 MAX_TOKENS = int(os.environ.get("SUPERVISOR_MAX_TOKENS", "1500"))
 LEASE_SECONDS = int(os.environ.get("WORKER_LEASE_SECONDS", "180"))
 MAX_ATTEMPTS = int(os.environ.get("WORKER_MAX_ATTEMPTS", "3"))
@@ -85,11 +87,7 @@ def open_connection() -> sqlite3.Connection:
 def ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
     columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
     if column not in columns:
-        try:
-            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
-        except sqlite3.OperationalError as exc:
-            if "duplicate column name" not in str(exc).lower():
-                raise
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
 def ensure_runtime_schema(conn: sqlite3.Connection) -> None:
@@ -451,35 +449,24 @@ def build_messages(persona_text: str, task: dict[str, Any]) -> tuple[str, str]:
     return system, user
 
 
-def call_model(system: str, user: str) -> tuple[str, dict[str, Any]]:
-    if MOCK_MODE:
-        payload = json.dumps({
-            "summary": "Mock run completed deterministically.",
-            "deliverable": "Mock-mode candidate deliverable produced by the Cyvora execution worker.",
-            "status": "completed", "confidence": 0.5, "next_action": None,
-        })
-        return payload, {"provider": "mock", "model": "deterministic-mock", "input_tokens": 0, "output_tokens": 0, "estimated_cost_usd": 0.0, "provider_request_id": None}
-
-    try:
-        import anthropic
-    except ImportError as exc:
-        raise RuntimeError("anthropic package not installed") from exc
-
-    client = anthropic.Anthropic()
-    response = client.messages.create(model=MODEL, max_tokens=MAX_TOKENS, system=system, messages=[{"role": "user", "content": user}])
-    text_blocks = [block.text for block in response.content if block.type == "text"]
-    if not text_blocks:
-        raise RuntimeError("model returned no text content")
-    input_tokens = int(getattr(response.usage, "input_tokens", 0) or 0)
-    output_tokens = int(getattr(response.usage, "output_tokens", 0) or 0)
-    # Conservative configurable estimate until provider billing reconciliation is added.
-    input_rate = float(os.environ.get("CYVORA_INPUT_COST_PER_MTOKEN", "3.0"))
-    output_rate = float(os.environ.get("CYVORA_OUTPUT_COST_PER_MTOKEN", "15.0"))
-    estimated_cost = (input_tokens * input_rate + output_tokens * output_rate) / 1_000_000
-    return "".join(text_blocks), {
-        "provider": "anthropic", "model": MODEL, "input_tokens": input_tokens, "output_tokens": output_tokens,
-        "estimated_cost_usd": round(estimated_cost, 6), "provider_request_id": getattr(response, "id", None),
-    }
+def call_model(system: str, user: str, run: dict[str, Any], task: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    policy = decide_execution_policy(task, run)
+    provider_name = "mock" if policy.provider == "mock" else None
+    provider = get_provider(provider_name)
+    response = provider.execute(
+        ModelRequest(
+            system=system,
+            user=user,
+            max_tokens=MAX_TOKENS,
+            task_id=int(task["id"]),
+            execution_run_id=int(run["id"]),
+        )
+    )
+    usage = response.usage.as_dict()
+    usage["policy_reason"] = policy.reason
+    usage["connector_mode"] = policy.connector_mode
+    usage["external_actions_allowed"] = policy.external_actions_allowed
+    return response.text, usage
 
 
 def validate_result(raw_text: str) -> dict[str, Any]:
@@ -516,8 +503,8 @@ def commit_result(conn: sqlite3.Connection, run: dict[str, Any], task: dict[str,
     risk = str(task.get("risk_level") or task.get("approval_risk_level") or "medium").lower()
     if str(task.get("approval_risk_level") or "").lower() in {"high", "critical"}:
         risk = str(task.get("approval_risk_level")).lower()
-    policy = str(task.get("validation_policy") or "schema").lower()
-    requires_human = risk in {"high", "critical"} or policy in {"human", "consensus_human", "result_approval"}
+    policy_decision = decide_execution_policy(task, run)
+    requires_human = policy_decision.requires_human_result_approval
     record_schema_validation(conn, run, task, output_id, result, usage, requires_human)
     if requires_human:
         conn.execute("UPDATE outputs SET review_status = 'awaiting_approval' WHERE id = ?", (output_id,))
@@ -611,9 +598,26 @@ def main() -> int:
 
         persona_text = persona_path.read_text(encoding="utf-8")
         system, user = build_messages(persona_text, task)
+        policy = decide_execution_policy(task, run)
+        conn.execute("BEGIN IMMEDIATE")
+        record_event(
+            conn,
+            task["company_id"],
+            "execution_policy_selected",
+            f"Policy selected for task #{task['id']}",
+            json.dumps({
+                "provider": policy.provider,
+                "validation_policy": policy.validation_policy,
+                "requires_human_result_approval": policy.requires_human_result_approval,
+                "external_actions_allowed": policy.external_actions_allowed,
+                "connector_mode": policy.connector_mode,
+                "reason": policy.reason,
+            }, sort_keys=True),
+        )
+        conn.commit()
 
         try:
-            raw_response, usage = call_model(system, user)
+            raw_response, usage = call_model(system, user, run, task)
         except Exception as exc:
             reason = f"model call failed: {exc}"
             print(f"BLOCKED — {reason}", file=sys.stderr)

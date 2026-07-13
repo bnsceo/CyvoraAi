@@ -6,6 +6,7 @@ const PUBLIC_PATHS = [
   '/api/unlock',
   '/api/logout',
   '/api/health',
+  '/api/runtime/providers',
   '/_next',
   '/favicon.ico',
   '/manifest.webmanifest',
@@ -32,5 +33,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api/unlock|api/logout|api/health|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|cyvora-logo.png|cyvora-header-logo.png).*)'],
+  matcher: ['/((?!api/unlock|api/logout|api/health|api/runtime/providers|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|cyvora-logo.png|cyvora-header-logo.png).*)'],
 };
