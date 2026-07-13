@@ -32,6 +32,8 @@ jobs:
           mkdir -p .github/pages
           cp docs/index.html .github/pages/index.html
           cp docs/product-tour.html .github/pages/product-tour.html
+          cp public/cyvora-header-logo.png .github/pages/cyvora-header-logo.png
+          cp public/cyvora-logo.png .github/pages/cyvora-logo.png
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
