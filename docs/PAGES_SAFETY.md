@@ -12,19 +12,9 @@ The canonical file includes:
 
 1. A public landing screen.
 2. A fully mocked interactive app showcase.
-3. A link to the separately hosted real application.
+3. A public-only demo flow with no private-app unlock action.
 
-## Authentication boundary
-
-The public Pages site does **not** implement authentication.
-
-The `Unlock / Sign In` action opens:
-
-```text
-https://cyvoraai.fly.dev/unlock
-```
-
-in a separate browser tab. Authentication, cookies, access-code validation, sessions, middleware, and logout remain entirely inside the real Next.js application.
+The GitHub Pages site does **not** implement authentication and does **not** expose private runtime URLs, access codes, or execution endpoints. Any real app access remains outside the Pages showcase.
 
 ## Never include on Pages
 
@@ -42,5 +32,3 @@ in a separate browser tab. Authentication, cookies, access-code validation, sess
 ## Static mock rule
 
 Every company, task, output, approval, cost, incident, connector, and worker state shown on Pages must be fictional or explicitly mocked.
-
-Imported into the canonical Desktop/Cyvora-project repo on 2026-07-13 from your phase-4 update package.
