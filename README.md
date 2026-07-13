@@ -69,23 +69,48 @@ The first run may download a local model into Ollama. After that, it stays local
 
 ## Static GitHub Pages showcase
 
-This repository now includes a separate static showcase in [`docs/`](./docs/) and a GitHub Pages workflow in [`.github/workflows/pages.yml`](./.github/workflows/pages.yml).
+GitHub Pages publishes one canonical static file only:
 
-The showcase has three pages:
+```text
+docs/cyvora-full-app-showcase.html
+```
 
-- [`docs/index.html`](./docs/index.html) — page chooser
-- [`docs/family.html`](./docs/family.html) — closer-to-app preview for close friends and family
-- [`docs/marketing.html`](./docs/marketing.html) — tighter public marketing version with feature sections
+The Pages workflow copies that file to the deployed artifact as `index.html`. The file contains both:
 
-That showcase is intentionally static. It is meant for branding, positioning, and high-level product explanation. The full command center still runs in the Next.js app.
+- a premium public landing screen
+- the fully mocked interactive product tour
 
-To preview the static pages locally, run this from the repo root:
+The public landing screen offers two clearly separated actions:
+
+- **Explore the Mock App** — enters the static interactive showcase
+- **Unlock / Sign In** — opens the separately hosted Cyvora application at `https://cyvoraai.fly.dev/unlock`
+
+GitHub Pages never receives or processes:
+
+- access codes or passwords
+- authentication cookies
+- API keys or provider secrets
+- database records
+- tenant files
+- worker controls
+- live API routes
+- billing or connector actions
+
+The full Next.js application remains in the repository and is deployed separately. The Pages artifact contains only static, public-safe content.
+
+Imported into the canonical Desktop/Cyvora-project repo on 2026-07-13 from your phase-4 update package.
+
+To preview the canonical showcase locally:
 
 ```bash
 python3 -m http.server 8080 --directory docs
 ```
 
-Then open `http://localhost:8080`.
+Then open:
+
+```text
+http://localhost:8080/cyvora-full-app-showcase.html
+```
 
 ## Learn more
 

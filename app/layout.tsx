@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
-import packageJson from "../package.json";
 import "./globals.css";
-import MobileDock from "@/components/MobileDock";
 import PwaBootstrap from "@/components/PwaBootstrap";
+import AppShell from "@/components/AppShell";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -17,8 +15,6 @@ const jetBrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   display: "swap",
 });
-
-const buildHash = process.env.NEXT_PUBLIC_BUILD_HASH || process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || "local-dev";
 
 export const metadata: Metadata = {
   title: "Cyvora · AI Command Center",
@@ -39,41 +35,9 @@ export default function RootLayout({
         <link rel="icon" href="/cyvora-icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/cyvora-icon.svg" />
       </head>
-      <body className="min-h-full flex flex-col overflow-x-hidden pb-24 md:pb-0">
+      <body className="min-h-full overflow-x-hidden">
         {process.env.NODE_ENV === 'production' ? <PwaBootstrap /> : null}
-        {children}
-        <div className="cyvora-glass-strong fixed inset-x-0 top-0 z-[60] border-x-0 border-t-0 px-4 py-2 md:hidden">
-          <div className="mx-auto flex max-w-7xl items-center gap-3">
-            <Image src="/cyvora-header-logo.png" alt="Cyvora" width={156} height={36} className="h-9 w-auto shrink-0" />
-            <div className="leading-tight">
-              <p className="text-sm font-semibold text-white">Cyvora</p>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/80">AI Command Center</p>
-            </div>
-          </div>
-        </div>
-        <footer className="cyvora-glass-strong border-x-0 border-b-0 px-4 py-4 text-center text-xs text-slate-500">
-          <div className="mx-auto flex flex-wrap items-center justify-center gap-3">
-            <div className="flex items-center gap-2">
-              <Image src="/cyvora-header-logo.png" alt="Cyvora" width={88} height={20} className="h-5 w-auto" />
-              <span>Created by Anderson · Founder · Cyvora</span>
-            </div>
-            <div className="cyvora-chip rounded-full px-3 py-1 text-[11px] text-slate-300">
-              v{packageJson.version} · build {buildHash}
-            </div>
-            <div className="cyvora-chip rounded-full px-3 py-1 text-[11px] text-slate-300">
-              Approvals · audit trail · rollback
-            </div>
-            <form action="/api/logout" method="post">
-              <button
-                type="submit"
-                className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-slate-300 transition hover:bg-white/[0.08]"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </footer>
-        <MobileDock />
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

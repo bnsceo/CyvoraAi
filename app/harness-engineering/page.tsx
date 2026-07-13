@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import NavBar from '@/components/NavBar';
 import { buildHarnessPlan, type HarnessPlan } from '@/lib/harnessPlan';
 import { clearDemoClientState, reloadFreshDemoPage } from '@/lib/demoClient';
 import { getRuntimeModeInfo } from '@/lib/runtimeMode';
@@ -242,8 +241,6 @@ export default function SelfCodingPage() {
 
   return (
     <div className="min-h-screen bg-[#070b12] text-white">
-      <NavBar />
-
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
         <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="cyvora-glass-strong rounded-2xl p-5 md:p-7">

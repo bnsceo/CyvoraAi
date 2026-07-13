@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import NavBar from '@/components/NavBar';
 import CyvoraPageHeader from '@/components/CyvoraPageHeader';
 
 export default function CompanyDetailPage() {
@@ -75,7 +74,6 @@ export default function CompanyDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#070b12] text-white">
-        <NavBar />
         <main className="mx-auto max-w-7xl px-4 py-10 text-slate-400">Loading company...</main>
       </div>
     );
@@ -84,7 +82,6 @@ export default function CompanyDetailPage() {
   if (error || !company) {
     return (
       <div className="min-h-screen bg-[#070b12] text-white">
-        <NavBar />
         <main className="mx-auto max-w-7xl px-4 py-10 text-rose-200">Error: {error || 'Not found'}</main>
       </div>
     );
@@ -92,8 +89,6 @@ export default function CompanyDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#070b12] text-white">
-      <NavBar />
-
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
         <CyvoraPageHeader
           eyebrow="Company Dashboard"

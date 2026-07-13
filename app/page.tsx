@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import NavBar from '@/components/NavBar';
 import CyvoraPageHeader from '@/components/CyvoraPageHeader';
 import { inferMissionBlueprint } from '@/lib/missionBlueprint';
 import { buildHarnessPlan, type HarnessPlan } from '@/lib/harnessPlan';
@@ -727,26 +726,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#070b12] text-white">
-      <NavBar />
-
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
-        <section className="cyvora-tactile mb-6 rounded-2xl px-4 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-cyan-200">
-                Neumorphic shell active
-              </p>
-              <p className="mt-1 text-sm text-slate-300">
-                This is the local Cyvora project on your PC. If you do not see this banner,
-                the browser is still serving old cached assets.
-              </p>
-              </div>
-            </div>
-            <Pill tone="cyan">Local build</Pill>
-          </div>
-        </section>
-
         <section className="cyvora-glass rounded-2xl p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -764,9 +744,9 @@ export default function Home() {
         </section>
 
         <CyvoraPageHeader
-          eyebrow="Mission Control"
-          title="Cyvora"
-          description="Autonomous business command center. The Executive AI turns founder intent into companies, departments, agents, approvals, and outputs."
+          eyebrow="Founder overview"
+          title="Command Center"
+          description="See what your AI organization is doing, what needs approval, which companies are active, and what the Executive AI recommends next."
         >
           <div className="flex flex-wrap gap-2">
             <Pill tone="cyan">Founder intent first</Pill>

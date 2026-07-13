@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import NavBar from '@/components/NavBar';
 import CyvoraPageHeader from '@/components/CyvoraPageHeader';
 import { inferMissionBlueprint } from '@/lib/missionBlueprint';
 import { clearDemoClientState, reloadFreshDemoPage } from '@/lib/demoClient';
@@ -108,8 +107,6 @@ export default function CompaniesPage() {
 
   return (
     <div className="min-h-screen bg-[#070b12] text-white">
-      <NavBar />
-
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
         <CyvoraPageHeader
           eyebrow="Vision intake"
