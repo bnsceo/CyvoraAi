@@ -350,3 +350,71 @@ body {
 @media (max-width: 1023px) {
   body { padding-bottom: 5.5rem; }
 }
+
+/* Phase 4 — Cyvora operating-system controls */
+.cyvora-shell-search {
+  min-height: 40px;
+  align-items: center;
+  gap: .55rem;
+  padding: 0 .75rem;
+  border: 1px solid rgba(210,226,255,.08);
+  border-radius: .8rem;
+  color: #94a3b8;
+  background: linear-gradient(145deg, rgba(16,26,43,.9), rgba(8,16,28,.96));
+  box-shadow: 7px 7px 15px rgba(0,0,0,.28), -5px -5px 12px rgba(255,255,255,.018);
+  font-size: .72rem;
+}
+.cyvora-shell-search:hover { color: #fff; border-color: rgba(141,223,255,.18); }
+.cyvora-shell-search kbd { margin-left: .4rem; padding: .18rem .38rem; border: 1px solid rgba(255,255,255,.08); border-radius: .4rem; color: #64748b; background: rgba(255,255,255,.025); font-size: .58rem; }
+.cyvora-os-modal,
+.cyvora-os-drawer {
+  border: 1px solid rgba(210,226,255,.1);
+  background: linear-gradient(145deg, rgba(13,23,39,.98), rgba(6,13,24,.99));
+  box-shadow: 24px 24px 70px rgba(0,0,0,.58), -12px -12px 28px rgba(255,255,255,.018);
+}
+.cyvora-os-modal { border-radius: 1.4rem; }
+.cyvora-os-drawer { border-left-color: rgba(141,223,255,.12); }
+.cyvora-os-command {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .65rem .8rem;
+  border: 1px solid transparent;
+  border-radius: .9rem;
+  color: #cbd5e1;
+  transition: 150ms ease;
+}
+.cyvora-os-command:hover { border-color: rgba(141,223,255,.11); background: rgba(141,223,255,.035); color: #fff; }
+.cyvora-os-command strong { display: block; font-size: .78rem; }
+.cyvora-os-command small { display: block; margin-top: .2rem; color: #64748b; font-size: .64rem; }
+.cyvora-os-kbd { display: inline-flex; align-items: center; min-height: 24px; padding: 0 .45rem; border: 1px solid rgba(255,255,255,.09); border-radius: .45rem; color: #94a3b8; background: rgba(255,255,255,.025); font-size: .62rem; white-space: nowrap; }
+.cyvora-os-card { display: flex; align-items: flex-start; gap: .75rem; padding: .9rem; border: 1px solid rgba(210,226,255,.07); border-radius: 1rem; background: rgba(255,255,255,.022); }
+.cyvora-os-card strong { display: block; color: #f8fafc; font-size: .77rem; }
+.cyvora-os-card p { margin-top: .28rem; color: #64748b; font-size: .67rem; line-height: 1.55; }
+.cyvora-os-status { width: .55rem; height: .55rem; margin-top: .25rem; flex: 0 0 auto; border-radius: 999px; }
+.cyvora-os-status.is-cyan { background: #8ddfff; box-shadow: 0 0 12px rgba(141,223,255,.65); }
+.cyvora-os-status.is-violet { background: #a39dff; box-shadow: 0 0 12px rgba(163,157,255,.65); }
+.cyvora-os-status.is-amber { background: #f4d487; box-shadow: 0 0 12px rgba(244,212,135,.6); }
+.cyvora-os-status.is-emerald { background: #6ee7b7; box-shadow: 0 0 12px rgba(110,231,183,.65); }
+.cyvora-os-section-label { margin-bottom: .7rem; color: #64748b; font-size: .62rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
+.cyvora-os-choice { min-height: 82px; padding: .75rem; border: 1px solid rgba(210,226,255,.07); border-radius: 1rem; color: #94a3b8; background: rgba(255,255,255,.02); text-align: left; }
+.cyvora-os-choice.is-selected { border-color: rgba(141,223,255,.25); color: #fff; box-shadow: inset 6px 6px 12px rgba(0,0,0,.28), inset -4px -4px 10px rgba(255,255,255,.015); }
+.cyvora-os-choice strong, .cyvora-os-choice small { display: block; }
+.cyvora-os-choice strong { font-size: .72rem; }.cyvora-os-choice small { margin-top: .3rem; color: #64748b; font-size: .6rem; line-height: 1.45; }
+.cyvora-theme-swatch { display: block; width: 100%; height: 24px; margin-bottom: .55rem; border-radius: .5rem; }
+.cyvora-theme-swatch.is-midnight { background: linear-gradient(90deg,#07101b,#0e1727,#8ddfff); }
+.cyvora-theme-swatch.is-deep { background: linear-gradient(90deg,#020617,#111827,#a39dff); }
+.cyvora-theme-swatch.is-contrast { background: linear-gradient(90deg,#000,#172033,#f4d487); }
+
+html[data-theme='deep'] body { background-color: #020617; background-image: radial-gradient(circle at top, rgba(163,157,255,.08), transparent 30%), linear-gradient(180deg,#020617,#080d18); }
+html[data-theme='deep'] .cyvora-app-sidebar,
+html[data-theme='deep'] .cyvora-app-topbar { background-color: rgba(2,6,23,.94); }
+html[data-theme='contrast'] body { background-color: #000; background-image: radial-gradient(circle at top, rgba(244,212,135,.065), transparent 28%), linear-gradient(180deg,#000,#070b12); }
+html[data-theme='contrast'] .cyvora-app-sidebar,
+html[data-theme='contrast'] .cyvora-app-topbar { background-color: rgba(0,0,0,.96); }
+html[data-density='compact'] .cyvora-app-content main { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+html[data-density='compact'] .cyvora-glass,
+html[data-density='compact'] .cyvora-glass-strong { --cyvora-density-pad: .85rem; }
+html[data-density='compact'] .cyvora-shell-nav-item { min-height: 39px; }

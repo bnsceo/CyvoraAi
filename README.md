@@ -69,7 +69,7 @@ The first run may download a local model into Ollama. After that, it stays local
 
 ## Static GitHub Pages showcase
 
-GitHub Pages publishes one canonical static file only:
+GitHub Pages publishes **one canonical static file only**:
 
 ```text
 docs/cyvora-full-app-showcase.html
@@ -98,8 +98,6 @@ GitHub Pages never receives or processes:
 
 The full Next.js application remains in the repository and is deployed separately. The Pages artifact contains only static, public-safe content.
 
-Imported into the canonical Desktop/Cyvora-project repo on 2026-07-13 from your phase-4 update package.
-
 To preview the canonical showcase locally:
 
 ```bash
@@ -116,3 +114,8 @@ http://localhost:8080/cyvora-full-app-showcase.html
 
 - [Next.js documentation](https://nextjs.org/docs)
 - [Next.js deployment docs](https://nextjs.org/docs/app/building-your-application/deploying)
+
+
+## Phase 4 and Phase 5
+
+Cyvora now includes premium operating-system controls and a deterministic, zero-cost Executive AI blueprint workspace at `/executive-ai`. See `PHASE_4_5_OS_AND_EXECUTIVE_AI.md`.

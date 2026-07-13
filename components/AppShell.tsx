@@ -5,13 +5,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import MobileDock from '@/components/MobileDock';
+import OperatingSystemControls from '@/components/OperatingSystemControls';
 import { getRuntimeModeInfo } from '@/lib/runtimeMode';
 
-type IconName = 'command' | 'companies' | 'headquarters' | 'approvals' | 'harness' | 'warroom' | 'history' | 'menu' | 'bell' | 'search' | 'close';
+type IconName = 'command' | 'executive' | 'companies' | 'headquarters' | 'approvals' | 'harness' | 'warroom' | 'history' | 'menu' | 'bell' | 'search' | 'close';
 
 function Icon({ name, className = 'h-4 w-4' }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
     command: <><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9 20v-6h6v6"/></>,
+    executive: <><path d="M12 3 9.8 8.4 4 10.2l4.6 3.7-.2 5.9 3.6-4.6 5.6 2-.9-5.8 3.7-4.6-5.8-.9L12 3Z"/><circle cx="12" cy="11" r="2"/></>,
     companies: <><rect x="3" y="5" width="8" height="14" rx="1.5"/><rect x="13" y="3" width="8" height="16" rx="1.5"/><path d="M6 9h2M6 13h2M16 7h2M16 11h2M16 15h2"/></>,
     headquarters: <><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4M5 15.5v-2h14v2"/></>,
     approvals: <><path d="M7 3h10v4H7z"/><path d="M5 5H4a1 1 0 0 0-1 1v14h18V6a1 1 0 0 0-1-1h-1"/><path d="m8 14 2.5 2.5L16 11"/></>,
@@ -28,6 +30,7 @@ function Icon({ name, className = 'h-4 w-4' }: { name: IconName; className?: str
 
 const primaryLinks = [
   { href: '/', label: 'Command Center', icon: 'command' as IconName },
+  { href: '/executive-ai', label: 'Executive AI', icon: 'executive' as IconName },
   { href: '/companies', label: 'Companies', icon: 'companies' as IconName },
   { href: '/headquarters', label: 'Headquarters', icon: 'headquarters' as IconName },
   { href: '/?view=approvals', label: 'Approvals', icon: 'approvals' as IconName, badge: '3' },
@@ -45,6 +48,7 @@ function isActive(pathname: string, href: string) {
 }
 
 function pageTitle(pathname: string) {
+  if (pathname.startsWith('/executive-ai')) return 'Executive AI';
   if (pathname.startsWith('/companies')) return 'Companies';
   if (pathname.startsWith('/headquarters')) return 'Headquarters';
   if (pathname.startsWith('/harness-engineering')) return 'Harness';
@@ -174,8 +178,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <div className="flex min-w-0 items-center gap-3">
             <button onClick={() => setDrawerOpen(true)} className="cyvora-shell-icon-button lg:hidden" aria-label="Open navigation"><Icon name="menu" /></button>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">{title}</p>
-              <p className="mt-0.5 truncate text-[10px] text-slate-500">Founder workspace · Cyvora</p>
+              <div className="flex items-center gap-2 text-[10px] text-slate-600">
+                <span>Cyvora</span><span>/</span><span className="text-cyan-100/70">{title}</span>
+              </div>
+              <p className="mt-1 truncate text-sm font-semibold text-white">{title}</p>
             </div>
           </div>
 
@@ -184,23 +190,21 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <span className={`h-1.5 w-1.5 rounded-full ${health === 'online' ? 'bg-emerald-300' : 'bg-amber-300'}`} />
               {runtime.label}
             </div>
-            <button className="cyvora-shell-icon-button hidden sm:grid" aria-label="Search"><Icon name="search" /></button>
-            <button className="cyvora-shell-icon-button relative" aria-label="Notifications"><Icon name="bell" /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.85)]" /></button>
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-300/15 bg-cyan-300/[0.06] text-xs font-bold text-cyan-100 shadow-[inset_1px_1px_0_rgba(255,255,255,.04),8px_8px_18px_rgba(0,0,0,.3)]">AP</div>
+            <button onClick={() => window.dispatchEvent(new Event('cyvora:commands'))} className="cyvora-shell-search hidden sm:flex" aria-label="Open command palette"><Icon name="search" /><span>Search</span><kbd>⌘K</kbd></button>
+            <button onClick={() => window.dispatchEvent(new Event('cyvora:notifications'))} className="cyvora-shell-icon-button relative" aria-label="Notifications"><Icon name="bell" /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.85)]" /></button>
+            <button onClick={() => window.dispatchEvent(new Event('cyvora:workspace'))} className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-300/15 bg-cyan-300/[0.06] text-xs font-bold text-cyan-100 shadow-[inset_1px_1px_0_rgba(255,255,255,.04),8px_8px_18px_rgba(0,0,0,.3)]" aria-label="Switch workspace">AP</button>
           </div>
         </header>
 
         <div className="cyvora-app-content">{children}</div>
 
         <footer className="border-t border-white/[0.06] px-5 py-5 text-center text-[10px] text-slate-600">
-          <div className="mx-auto flex items-center justify-center gap-2">
-            <Image src="/cyvora-header-logo.png" alt="Cyvora" width={88} height={20} className="h-5 w-auto" />
-            <span>Created by Anderson · Founder · Cyvora</span>
-          </div>
+          Cyvora · Founder-controlled AI operations
         </footer>
       </div>
 
       <MobileDock />
+      <OperatingSystemControls />
     </div>
   );
 }

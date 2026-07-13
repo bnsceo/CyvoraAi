@@ -2,38 +2,53 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-const items = [
-  { href: '/', label: 'Home' },
-  { href: '/headquarters', label: 'HQ' },
-  { href: '/companies', label: 'Companies' },
-  { href: '/harness-engineering', label: 'Harness' },
-  { href: '/history', label: 'History' },
-];
+const catalog: Record<string, { href: string; label: string; glyph: string }> = {
+  command: { href: '/', label: 'Command', glyph: '⌂' },
+  executive: { href: '/executive-ai', label: 'Executive', glyph: '✦' },
+  companies: { href: '/companies', label: 'Companies', glyph: '◫' },
+  headquarters: { href: '/headquarters', label: 'HQ', glyph: '⌘' },
+  approvals: { href: '/?view=approvals', label: 'Approvals', glyph: '✓' },
+  harness: { href: '/harness-engineering', label: 'Harness', glyph: '⚙' },
+  warroom: { href: '/security', label: 'War Room', glyph: '⚠' },
+  history: { href: '/history', label: 'History', glyph: '↻' },
+};
+
+const defaults = ['command', 'companies', 'executive', 'approvals', 'warroom'];
 
 export default function MobileDock() {
   const pathname = usePathname();
+  const [ids, setIds] = useState(defaults);
+
+  useEffect(() => {
+    const read = () => {
+      try {
+        const value = JSON.parse(window.localStorage.getItem('cyvora.dock') || JSON.stringify(defaults));
+        if (Array.isArray(value) && value.length >= 3) setIds(value.filter((id) => catalog[id]).slice(0, 5));
+      } catch { setIds(defaults); }
+    };
+    read();
+    window.addEventListener('cyvora:dock-updated', read);
+    return () => window.removeEventListener('cyvora:dock-updated', read);
+  }, []);
+
+  if (pathname.startsWith('/unlock')) return null;
 
   return (
-    <nav className="cyvora-tactile fixed inset-x-0 bottom-0 z-40 border-t-0 md:hidden">
-      <div className="mx-auto grid max-w-7xl grid-cols-5 gap-1 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2">
-        {items.map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`cyvora-chip rounded-xl px-2 py-2 text-center text-[11px] font-medium transition ${
-                active
-                  ? 'cyvora-neumo-pressed text-cyan-100'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span className="block truncate">{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
+    <nav className="cyvora-mobile-dock lg:hidden" aria-label="Mobile navigation" style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}>
+      {ids.map((id) => {
+        const item = catalog[id];
+        const path = item.href.split('?')[0];
+        const active = path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`);
+        const primary = id === 'executive';
+        return (
+          <Link key={id} href={item.href} className={`cyvora-mobile-dock-item ${active ? 'is-active' : ''} ${primary ? 'is-primary' : ''}`}>
+            <span className="text-base leading-none">{item.glyph}</span>
+            <span className="mt-1 block truncate text-[9px]">{item.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }
