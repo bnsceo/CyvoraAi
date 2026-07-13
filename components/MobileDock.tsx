@@ -36,7 +36,7 @@ export default function MobileDock() {
   if (pathname.startsWith('/unlock')) return null;
 
   return (
-    <nav className="cyvora-mobile-dock lg:hidden" aria-label="Mobile navigation" style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}>
+    <nav className="cyvora-mobile-dock md:hidden" aria-label="Mobile navigation" style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}>
       {ids.map((id) => {
         const item = catalog[id];
         const path = item.href.split('?')[0];
