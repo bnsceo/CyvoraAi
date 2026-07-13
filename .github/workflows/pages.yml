@@ -31,9 +31,7 @@ jobs:
         run: |
           rm -rf .github/pages
           mkdir -p .github/pages
-          cp -R docs/. .github/pages/
-          cp public/cyvora-header-logo.png .github/pages/cyvora-header-logo.png
-          cp public/cyvora-icon.svg .github/pages/cyvora-icon.svg
+          cp docs/cyvora-full-app-showcase.html .github/pages/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
