@@ -31,6 +31,7 @@ jobs:
           rm -rf .github/pages
           mkdir -p .github/pages
           cp docs/cyvora-full-app-showcase.html .github/pages/index.html
+          cp docs/product-tour.html .github/pages/product-tour.html
           touch .github/pages/.nojekyll
 
       - name: Setup Pages
