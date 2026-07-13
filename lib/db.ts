@@ -123,6 +123,13 @@ db.run(`
     status TEXT NOT NULL,
     priority TEXT NOT NULL,
     assigned_agent TEXT,
+    claimed_by TEXT,
+    claimed_at TEXT,
+    lease_expires_at TEXT,
+    heartbeat_at TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 3,
+    last_error TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(company_id) REFERENCES companies(id),
@@ -189,6 +196,12 @@ db.run(`
     paid_ai INTEGER NOT NULL,
     mock_mode INTEGER NOT NULL,
     error_message TEXT,
+    claimed_by TEXT,
+    claimed_at TEXT,
+    lease_expires_at TEXT,
+    heartbeat_at TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 3,
     started_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     completed_at TEXT,
@@ -197,6 +210,57 @@ db.run(`
     FOREIGN KEY(company_id) REFERENCES companies(id)
   )
 `);
+
+
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS worker_heartbeats (
+    worker_id TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    current_run_id INTEGER,
+    current_task_id INTEGER,
+    hostname TEXT,
+    process_id INTEGER,
+    version TEXT,
+    started_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    details TEXT
+  )
+`);
+
+function ensureColumn(table: string, column: string, definition: string): void {
+  db.all(`PRAGMA table_info(${table})`, (err, rows: any[]) => {
+    if (err) {
+      console.error(`[db] unable to inspect ${table}.${column}:`, err);
+      return;
+    }
+    if (rows.some((row) => row.name === column)) return;
+    db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`, (alterErr) => {
+      if (
+        alterErr &&
+        !(alterErr instanceof Error && /duplicate column name/i.test(alterErr.message))
+      ) {
+        console.error(`[db] unable to add ${table}.${column}:`, alterErr);
+      }
+    });
+  });
+}
+
+[
+  ['tasks', 'claimed_by', 'TEXT'],
+  ['tasks', 'claimed_at', 'TEXT'],
+  ['tasks', 'lease_expires_at', 'TEXT'],
+  ['tasks', 'heartbeat_at', 'TEXT'],
+  ['tasks', 'attempt_count', 'INTEGER NOT NULL DEFAULT 0'],
+  ['tasks', 'max_attempts', 'INTEGER NOT NULL DEFAULT 3'],
+  ['tasks', 'last_error', 'TEXT'],
+  ['execution_runs', 'claimed_by', 'TEXT'],
+  ['execution_runs', 'claimed_at', 'TEXT'],
+  ['execution_runs', 'lease_expires_at', 'TEXT'],
+  ['execution_runs', 'heartbeat_at', 'TEXT'],
+  ['execution_runs', 'attempt_count', 'INTEGER NOT NULL DEFAULT 0'],
+  ['execution_runs', 'max_attempts', 'INTEGER NOT NULL DEFAULT 3'],
+].forEach(([table, column, definition]) => ensureColumn(table, column, definition));
 
 // --- Mission functions ---
 export function saveMission(data: {

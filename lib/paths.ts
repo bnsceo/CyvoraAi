@@ -8,5 +8,5 @@ if (!WORKSPACE_ROOT) {
 
 export const workspaceRoot = WORKSPACE_ROOT;
 export const backendRoot = path.join(/*turbopackIgnore: true*/ workspaceRoot, 'backend');
-export const tenantsRoot = path.join(/*turbopackIgnore: true*/ workspaceRoot, 'tenants');
-export const logsRoot = path.join(/*turbopackIgnore: true*/ workspaceRoot, 'logs');
+export const tenantsRoot = process.env.TENANTS_ROOT || path.join(/*turbopackIgnore: true*/ workspaceRoot, 'tenants');
+export const logsRoot = process.env.LOGS_ROOT || path.join(/*turbopackIgnore: true*/ workspaceRoot, 'logs');

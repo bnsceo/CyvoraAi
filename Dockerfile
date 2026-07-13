@@ -25,7 +25,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV JARVIS_WORKSPACE_ROOT=/app
 ENV MISSIONS_DB_PATH=/app/data/missions.db
-ENV TENANTS_ROOT=/app/tenants
+ENV TENANTS_ROOT=/app/data/tenants
 ENV AGENCY_AGENTS_DIR=/app/personas
 
 COPY --from=builder /app/node_modules ./node_modules
@@ -38,9 +38,9 @@ COPY --from=builder /app/personas ./personas
 COPY --from=builder /app/scripts ./scripts
 
 RUN chmod +x ./scripts/entrypoint.sh ./scripts/worker-loop.sh \
-  && mkdir -p /app/data /app/tenants /app/logs
+  && mkdir -p /app/data/tenants /app/logs
 
-VOLUME ["/app/data", "/app/tenants", "/app/logs"]
+VOLUME ["/app/data", "/app/logs"]
 
 EXPOSE 3000
 

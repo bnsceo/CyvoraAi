@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { ensureTenantDirectories } from '@/lib/tenant';
-import { workspaceRoot } from '@/lib/paths';
 import { updateMissionStatus } from '@/lib/db';
 import { isDemoMode } from '@/lib/runtimeMode';
 
@@ -50,18 +49,7 @@ export async function POST(req: NextRequest) {
       // We continue anyway – status file is the source of truth for the UI
     }
 
-    // Try git but don't block
-    if (action === 'decree') {
-      try {
-        const { exec } = await import('child_process');
-        const projectRoot = workspaceRoot;
-        await exec('git add .', { cwd: projectRoot });
-        await exec(`git commit -m "DECREED: ${objective.slice(0, 80)}"`, { cwd: projectRoot });
-        await exec('git push', { cwd: projectRoot });
-      } catch (gitError) {
-        console.warn('Git failed, but status updated:', gitError);
-      }
-    }
+    // Mission approval updates Cyvora state only. Repository changes must go through Harness Engineering.
 
     // Parse and return the briefing with updated status
     const briefing = parseBriefing(content);
