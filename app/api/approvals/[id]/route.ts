@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenantId } from '@/lib/tenant';
-import { getCompanies, updateApprovalStatus } from '@/lib/db';
+import { getApprovalById, updateApprovalStatus, finalizeApprovedResult } from '@/lib/db';
 
 export async function POST(
   req: NextRequest,
@@ -20,23 +20,27 @@ export async function POST(
     }
 
     const tenant = await getTenantId();
-    const companies = await getCompanies(tenant);
-    const company = companies.find((item) => item.approvals?.some((approval: any) => approval.id === id));
-
-    if (!company) {
-      return NextResponse.json({ error: 'Approval not found' }, { status: 404 });
-    }
-
-    const approval = company.approvals.find((item: any) => item.id === id);
+    const approval = await getApprovalById(id, tenant);
     if (!approval) {
       return NextResponse.json({ error: 'Approval not found' }, { status: 404 });
     }
+    const company = { id: approval.company_id };
 
     await updateApprovalStatus({
       id,
       company_id: company.id,
       status: action === 'approve' ? 'approved' : 'held',
     });
+
+    if (action === 'approve' && approval.approval_type === 'result_acceptance') {
+      await finalizeApprovedResult({
+        approval_id: id,
+        company_id: company.id,
+        task_id: approval.task_id,
+        output_id: approval.subject_id,
+        execution_run_id: approval.execution_run_id,
+      });
+    }
 
     return NextResponse.json({
       id,

@@ -123,6 +123,10 @@ db.run(`
     status TEXT NOT NULL,
     priority TEXT NOT NULL,
     assigned_agent TEXT,
+    risk_level TEXT NOT NULL DEFAULT 'medium',
+    validation_policy TEXT NOT NULL DEFAULT 'schema',
+    revision_count INTEGER NOT NULL DEFAULT 0,
+    max_revisions INTEGER NOT NULL DEFAULT 2,
     claimed_by TEXT,
     claimed_at TEXT,
     lease_expires_at TEXT,
@@ -147,6 +151,12 @@ db.run(`
     summary TEXT,
     status TEXT NOT NULL,
     risk_level TEXT NOT NULL,
+    approval_type TEXT NOT NULL DEFAULT 'task_execution',
+    subject_type TEXT,
+    subject_id INTEGER,
+    execution_run_id INTEGER,
+    decision_reason TEXT,
+    decided_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(company_id) REFERENCES companies(id),
@@ -163,6 +173,12 @@ db.run(`
     output_type TEXT NOT NULL,
     status TEXT NOT NULL,
     summary TEXT,
+    execution_run_id INTEGER,
+    candidate_version INTEGER NOT NULL DEFAULT 1,
+    agent_confidence REAL,
+    review_status TEXT NOT NULL DEFAULT 'unreviewed',
+    finalized_at TEXT,
+    approved_at TEXT,
     created_at TEXT NOT NULL,
     FOREIGN KEY(company_id) REFERENCES companies(id),
     FOREIGN KEY(task_id) REFERENCES tasks(id)
@@ -214,6 +230,54 @@ db.run(`
 
 
 db.run(`
+  CREATE TABLE IF NOT EXISTS validation_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant TEXT NOT NULL,
+    company_id INTEGER NOT NULL,
+    task_id INTEGER NOT NULL,
+    output_id INTEGER NOT NULL,
+    execution_run_id INTEGER,
+    validator_type TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    protocol TEXT NOT NULL,
+    status TEXT NOT NULL,
+    confidence REAL,
+    decision TEXT,
+    findings_json TEXT NOT NULL DEFAULT '[]',
+    blocking_findings_json TEXT NOT NULL DEFAULT '[]',
+    dissent_json TEXT NOT NULL DEFAULT '[]',
+    requires_human_approval INTEGER NOT NULL DEFAULT 0,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    estimated_cost_usd REAL NOT NULL DEFAULT 0,
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    FOREIGN KEY(company_id) REFERENCES companies(id),
+    FOREIGN KEY(task_id) REFERENCES tasks(id),
+    FOREIGN KEY(output_id) REFERENCES outputs(id),
+    FOREIGN KEY(execution_run_id) REFERENCES execution_runs(id)
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS usage_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant TEXT NOT NULL,
+    company_id INTEGER,
+    task_id INTEGER,
+    execution_run_id INTEGER,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    estimated_cost_usd REAL NOT NULL DEFAULT 0,
+    provider_request_id TEXT,
+    created_at TEXT NOT NULL
+  )
+`);
+
+
+db.run(`
   CREATE TABLE IF NOT EXISTS worker_heartbeats (
     worker_id TEXT PRIMARY KEY,
     status TEXT NOT NULL,
@@ -254,6 +318,22 @@ function ensureColumn(table: string, column: string, definition: string): void {
   ['tasks', 'attempt_count', 'INTEGER NOT NULL DEFAULT 0'],
   ['tasks', 'max_attempts', 'INTEGER NOT NULL DEFAULT 3'],
   ['tasks', 'last_error', 'TEXT'],
+  ['tasks', 'risk_level', "TEXT NOT NULL DEFAULT 'medium'"],
+  ['tasks', 'validation_policy', "TEXT NOT NULL DEFAULT 'schema'"],
+  ['tasks', 'revision_count', 'INTEGER NOT NULL DEFAULT 0'],
+  ['tasks', 'max_revisions', 'INTEGER NOT NULL DEFAULT 2'],
+  ['approvals', 'approval_type', "TEXT NOT NULL DEFAULT 'task_execution'"],
+  ['approvals', 'subject_type', 'TEXT'],
+  ['approvals', 'subject_id', 'INTEGER'],
+  ['approvals', 'execution_run_id', 'INTEGER'],
+  ['approvals', 'decision_reason', 'TEXT'],
+  ['approvals', 'decided_at', 'TEXT'],
+  ['outputs', 'execution_run_id', 'INTEGER'],
+  ['outputs', 'candidate_version', 'INTEGER NOT NULL DEFAULT 1'],
+  ['outputs', 'agent_confidence', 'REAL'],
+  ['outputs', 'review_status', "TEXT NOT NULL DEFAULT 'unreviewed'"],
+  ['outputs', 'finalized_at', 'TEXT'],
+  ['outputs', 'approved_at', 'TEXT'],
   ['execution_runs', 'claimed_by', 'TEXT'],
   ['execution_runs', 'claimed_at', 'TEXT'],
   ['execution_runs', 'lease_expires_at', 'TEXT'],
@@ -580,15 +660,18 @@ export function saveTask(data: {
   status: string;
   priority: string;
   assigned_agent?: string;
+  risk_level?: string;
+  validation_policy?: string;
+  max_revisions?: number;
 }): Promise<number> {
   return new Promise((resolve, reject) => {
     const now = new Date().toISOString();
     const stmt = db.prepare(
       `INSERT INTO tasks (
         company_id, department_id, team_id, title, description, workflow_stage,
-        status, priority, assigned_agent, created_at, updated_at
+        status, priority, assigned_agent, risk_level, validation_policy, max_revisions, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
     stmt.run(
       data.company_id,
@@ -600,6 +683,9 @@ export function saveTask(data: {
       data.status,
       data.priority,
       data.assigned_agent || '',
+      data.risk_level || 'medium',
+      data.validation_policy || 'schema',
+      data.max_revisions || 2,
       now,
       now,
       function (this: sqlite3.RunResult, err: Error | null) {
@@ -672,12 +758,16 @@ export function saveApproval(data: {
   summary?: string;
   status: string;
   risk_level: string;
+  approval_type?: string;
+  subject_type?: string;
+  subject_id?: number;
+  execution_run_id?: number;
 }): Promise<number> {
   return new Promise((resolve, reject) => {
     const now = new Date().toISOString();
     const stmt = db.prepare(
-      `INSERT INTO approvals (company_id, task_id, title, summary, status, risk_level, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO approvals (company_id, task_id, title, summary, status, risk_level, approval_type, subject_type, subject_id, execution_run_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
     stmt.run(
       data.company_id,
@@ -686,6 +776,10 @@ export function saveApproval(data: {
       data.summary || '',
       data.status,
       data.risk_level,
+      data.approval_type || 'task_execution',
+      data.subject_type || null,
+      data.subject_id || null,
+      data.execution_run_id || null,
       now,
       now,
       function (this: sqlite3.RunResult, err: Error | null) {
@@ -706,6 +800,16 @@ export function getApprovals(company_id: number): Promise<any[]> {
   });
 }
 
+export function getApprovalById(id: number, tenant: string): Promise<any | null> {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT a.* FROM approvals a JOIN companies c ON c.id = a.company_id WHERE a.id = ? AND c.tenant = ? LIMIT 1`,
+      [id, tenant],
+      (err, row) => { if (err) reject(err); else resolve(row || null); }
+    );
+  });
+}
+
 export function updateApprovalStatus(data: {
   id: number;
   company_id: number;
@@ -714,9 +818,9 @@ export function updateApprovalStatus(data: {
   return new Promise((resolve, reject) => {
     db.run(
       `UPDATE approvals
-       SET status = ?, updated_at = ?
+       SET status = ?, decided_at = ?, updated_at = ?
        WHERE id = ? AND company_id = ?`,
-      [data.status, new Date().toISOString(), data.id, data.company_id],
+      [data.status, new Date().toISOString(), new Date().toISOString(), data.id, data.company_id],
       (err) => {
         if (err) reject(err);
         else resolve();
@@ -975,6 +1079,23 @@ export function clearDemoMissions(): Promise<void> {
     db.run(`DELETE FROM missions WHERE objective LIKE '[DEMO] %'`, (err) => {
       if (err) reject(err);
       else resolve();
+    });
+  });
+}
+
+
+export function finalizeApprovedResult(data: { approval_id: number; company_id: number; task_id?: number; output_id?: number; execution_run_id?: number }): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timestamp = new Date().toISOString();
+    db.serialize(() => {
+      db.run('BEGIN IMMEDIATE');
+      if (data.output_id) db.run(`UPDATE outputs SET status = 'final', review_status = 'approved', approved_at = ?, finalized_at = ? WHERE id = ? AND company_id = ?`, [timestamp, timestamp, data.output_id, data.company_id]);
+      if (data.task_id) db.run(`UPDATE tasks SET status = 'completed', updated_at = ? WHERE id = ? AND company_id = ?`, [timestamp, data.task_id, data.company_id]);
+      if (data.execution_run_id) db.run(`UPDATE execution_runs SET status = 'completed', rollback_state = 'complete', completed_at = ?, updated_at = ? WHERE id = ? AND company_id = ?`, [timestamp, timestamp, data.execution_run_id, data.company_id]);
+      db.run(`INSERT INTO activity_events (company_id, event_type, title, description, created_at) VALUES (?, 'result_approved', ?, ?, ?)`, [data.company_id, `Result approval #${data.approval_id} completed`, 'Candidate output was accepted and finalized by the founder approval flow.', timestamp], (err) => {
+        if (err) { db.run('ROLLBACK'); reject(err); return; }
+        db.run('COMMIT', (commitErr) => commitErr ? reject(commitErr) : resolve());
+      });
     });
   });
 }

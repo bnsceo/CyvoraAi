@@ -101,6 +101,43 @@ def ensure_runtime_schema(conn: sqlite3.Connection) -> None:
         ensure_column(conn, table, "attempt_count", "INTEGER NOT NULL DEFAULT 0")
         ensure_column(conn, table, "max_attempts", f"INTEGER NOT NULL DEFAULT {MAX_ATTEMPTS}")
     ensure_column(conn, "tasks", "last_error", "TEXT")
+    ensure_column(conn, "tasks", "risk_level", "TEXT NOT NULL DEFAULT 'medium'")
+    ensure_column(conn, "tasks", "validation_policy", "TEXT NOT NULL DEFAULT 'schema'")
+    ensure_column(conn, "tasks", "revision_count", "INTEGER NOT NULL DEFAULT 0")
+    ensure_column(conn, "tasks", "max_revisions", "INTEGER NOT NULL DEFAULT 2")
+    for column, definition in (
+        ("approval_type", "TEXT NOT NULL DEFAULT 'task_execution'"),
+        ("subject_type", "TEXT"), ("subject_id", "INTEGER"),
+        ("execution_run_id", "INTEGER"), ("decision_reason", "TEXT"),
+        ("decided_at", "TEXT"),
+    ):
+        ensure_column(conn, "approvals", column, definition)
+    for column, definition in (
+        ("execution_run_id", "INTEGER"), ("candidate_version", "INTEGER NOT NULL DEFAULT 1"),
+        ("agent_confidence", "REAL"), ("review_status", "TEXT NOT NULL DEFAULT 'unreviewed'"),
+        ("finalized_at", "TEXT"), ("approved_at", "TEXT"),
+    ):
+        ensure_column(conn, "outputs", column, definition)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS validation_runs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, tenant TEXT NOT NULL, company_id INTEGER NOT NULL,
+          task_id INTEGER NOT NULL, output_id INTEGER NOT NULL, execution_run_id INTEGER,
+          validator_type TEXT NOT NULL, provider TEXT NOT NULL, protocol TEXT NOT NULL,
+          status TEXT NOT NULL, confidence REAL, decision TEXT, findings_json TEXT NOT NULL DEFAULT '[]',
+          blocking_findings_json TEXT NOT NULL DEFAULT '[]', dissent_json TEXT NOT NULL DEFAULT '[]',
+          requires_human_approval INTEGER NOT NULL DEFAULT 0, input_tokens INTEGER NOT NULL DEFAULT 0,
+          output_tokens INTEGER NOT NULL DEFAULT 0, estimated_cost_usd REAL NOT NULL DEFAULT 0,
+          started_at TEXT NOT NULL, completed_at TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS usage_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, tenant TEXT NOT NULL, company_id INTEGER,
+          task_id INTEGER, execution_run_id INTEGER, provider TEXT NOT NULL, model TEXT NOT NULL,
+          input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0,
+          estimated_cost_usd REAL NOT NULL DEFAULT 0, provider_request_id TEXT, created_at TEXT NOT NULL
+        )
+    """)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS worker_heartbeats (
@@ -275,7 +312,7 @@ def claim_bundle(conn: sqlite3.Connection) -> dict[str, Any] | None:
 
     task_row = conn.execute(
         """
-        SELECT t.*, a.id AS approval_id
+        SELECT t.*, a.id AS approval_id, a.risk_level AS approval_risk_level
         FROM tasks t
         JOIN approvals a ON a.task_id = t.id
         WHERE t.company_id = ?
@@ -344,23 +381,36 @@ def release_task(conn: sqlite3.Connection, task_id: int, status: str) -> None:
     )
 
 
-def write_output(conn: sqlite3.Connection, task: dict[str, Any], status: str, summary: str, deliverable: str) -> None:
+def write_candidate_output(conn: sqlite3.Connection, run: dict[str, Any], task: dict[str, Any], result: dict[str, Any]) -> int:
     title = f"{task['title']} result"
-    body = f"{summary}\n\n{deliverable}".strip()
-    existing = conn.execute("SELECT id FROM outputs WHERE task_id = ? LIMIT 1", (task["id"],)).fetchone()
+    body = f"{result['summary']}\n\n{result['deliverable']}".strip()
+    existing = conn.execute("SELECT id, candidate_version FROM outputs WHERE task_id = ? LIMIT 1", (task["id"],)).fetchone()
     if existing:
+        version = int(existing["candidate_version"] or 0) + 1
         conn.execute(
-            "UPDATE outputs SET status = ?, summary = ? WHERE id = ?",
-            (status, body, existing["id"]),
+            "UPDATE outputs SET status = 'candidate', summary = ?, execution_run_id = ?, candidate_version = ?, agent_confidence = ?, review_status = 'validating', finalized_at = NULL, approved_at = NULL WHERE id = ?",
+            (body, run["id"], version, float(result["confidence"]), existing["id"]),
         )
-        return
+        return int(existing["id"])
+    cursor = conn.execute(
+        """INSERT INTO outputs (company_id, task_id, title, output_type, status, summary, execution_run_id, candidate_version, agent_confidence, review_status, created_at)
+           VALUES (?, ?, ?, 'result', 'candidate', ?, ?, 1, ?, 'validating', ?)""",
+        (task["company_id"], task["id"], title, body, run["id"], float(result["confidence"]), now()),
+    )
+    return int(cursor.lastrowid)
 
+def record_usage(conn: sqlite3.Connection, run: dict[str, Any], task: dict[str, Any], usage: dict[str, Any]) -> None:
     conn.execute(
-        """
-        INSERT INTO outputs (company_id, task_id, title, output_type, status, summary, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-        (task["company_id"], task["id"], title, "result", status, body, now()),
+        """INSERT INTO usage_events (tenant, company_id, task_id, execution_run_id, provider, model, input_tokens, output_tokens, estimated_cost_usd, provider_request_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (run["tenant"], task["company_id"], task["id"], run["id"], usage["provider"], usage["model"], usage["input_tokens"], usage["output_tokens"], usage["estimated_cost_usd"], usage.get("provider_request_id"), now()),
+    )
+
+def record_schema_validation(conn: sqlite3.Connection, run: dict[str, Any], task: dict[str, Any], output_id: int, result: dict[str, Any], usage: dict[str, Any], requires_human: bool) -> None:
+    conn.execute(
+        """INSERT INTO validation_runs (tenant, company_id, task_id, output_id, execution_run_id, validator_type, provider, protocol, status, confidence, decision, requires_human_approval, input_tokens, output_tokens, estimated_cost_usd, started_at, completed_at)
+           VALUES (?, ?, ?, ?, ?, 'schema', 'cyvora', 'deterministic', 'passed', ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (run["tenant"], task["company_id"], task["id"], output_id, run["id"], float(result["confidence"]), "Structured output contract passed.", 1 if requires_human else 0, usage["input_tokens"], usage["output_tokens"], usage["estimated_cost_usd"], now(), now()),
     )
 
 
@@ -401,17 +451,14 @@ def build_messages(persona_text: str, task: dict[str, Any]) -> tuple[str, str]:
     return system, user
 
 
-def call_model(system: str, user: str) -> str:
+def call_model(system: str, user: str) -> tuple[str, dict[str, Any]]:
     if MOCK_MODE:
-        return json.dumps(
-            {
-                "summary": "Mock run completed deterministically.",
-                "deliverable": "Mock-mode deliverable produced by the Cyvora execution worker.",
-                "status": "completed",
-                "confidence": 0.5,
-                "next_action": None,
-            }
-        )
+        payload = json.dumps({
+            "summary": "Mock run completed deterministically.",
+            "deliverable": "Mock-mode candidate deliverable produced by the Cyvora execution worker.",
+            "status": "completed", "confidence": 0.5, "next_action": None,
+        })
+        return payload, {"provider": "mock", "model": "deterministic-mock", "input_tokens": 0, "output_tokens": 0, "estimated_cost_usd": 0.0, "provider_request_id": None}
 
     try:
         import anthropic
@@ -419,16 +466,20 @@ def call_model(system: str, user: str) -> str:
         raise RuntimeError("anthropic package not installed") from exc
 
     client = anthropic.Anthropic()
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=MAX_TOKENS,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-    )
+    response = client.messages.create(model=MODEL, max_tokens=MAX_TOKENS, system=system, messages=[{"role": "user", "content": user}])
     text_blocks = [block.text for block in response.content if block.type == "text"]
     if not text_blocks:
         raise RuntimeError("model returned no text content")
-    return "".join(text_blocks)
+    input_tokens = int(getattr(response.usage, "input_tokens", 0) or 0)
+    output_tokens = int(getattr(response.usage, "output_tokens", 0) or 0)
+    # Conservative configurable estimate until provider billing reconciliation is added.
+    input_rate = float(os.environ.get("CYVORA_INPUT_COST_PER_MTOKEN", "3.0"))
+    output_rate = float(os.environ.get("CYVORA_OUTPUT_COST_PER_MTOKEN", "15.0"))
+    estimated_cost = (input_tokens * input_rate + output_tokens * output_rate) / 1_000_000
+    return "".join(text_blocks), {
+        "provider": "anthropic", "model": MODEL, "input_tokens": input_tokens, "output_tokens": output_tokens,
+        "estimated_cost_usd": round(estimated_cost, 6), "provider_request_id": getattr(response, "id", None),
+    }
 
 
 def validate_result(raw_text: str) -> dict[str, Any]:
@@ -456,42 +507,34 @@ def validate_result(raw_text: str) -> dict[str, Any]:
     return obj
 
 
-def commit_result(
-    conn: sqlite3.Connection,
-    run: dict[str, Any],
-    task: dict[str, Any],
-    result: dict[str, Any],
-) -> None:
-    status = "completed" if result["status"] == "completed" else "blocked"
-    rollback_state = "complete" if status == "completed" else "required"
-    summary = result["summary"]
-    deliverable = result["deliverable"]
-
-    write_output(conn, task, "final" if status == "completed" else "blocked", summary, deliverable)
-    conn.execute(
-        "UPDATE tasks SET status = ?, claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL, heartbeat_at = NULL, updated_at = ? WHERE id = ?",
-        (status, now(), task["id"]),
-    )
-    conn.execute(
-        """
-        UPDATE execution_runs
-        SET status = ?,
-            rollback_state = ?,
-            error_message = CASE WHEN ? = 'completed' THEN NULL ELSE ? END,
-            completed_at = ?,
-            claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL, heartbeat_at = NULL,
-            updated_at = ?
-        WHERE id = ?
-        """,
-        (status, rollback_state, status, None if status == "completed" else summary, now(), now(), run["id"]),
-    )
-    record_event(
-        conn,
-        task["company_id"],
-        "task_executed",
-        f"Task #{task['id']} {status}",
-        summary,
-    )
+def commit_result(conn: sqlite3.Connection, run: dict[str, Any], task: dict[str, Any], result: dict[str, Any], usage: dict[str, Any]) -> None:
+    if result["status"] != "completed":
+        block_bundle(conn, run, task, result["summary"])
+        return
+    output_id = write_candidate_output(conn, run, task, result)
+    record_usage(conn, run, task, usage)
+    risk = str(task.get("risk_level") or task.get("approval_risk_level") or "medium").lower()
+    if str(task.get("approval_risk_level") or "").lower() in {"high", "critical"}:
+        risk = str(task.get("approval_risk_level")).lower()
+    policy = str(task.get("validation_policy") or "schema").lower()
+    requires_human = risk in {"high", "critical"} or policy in {"human", "consensus_human", "result_approval"}
+    record_schema_validation(conn, run, task, output_id, result, usage, requires_human)
+    if requires_human:
+        conn.execute("UPDATE outputs SET review_status = 'awaiting_approval' WHERE id = ?", (output_id,))
+        conn.execute("UPDATE tasks SET status = 'awaiting_result_approval', claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL, heartbeat_at = NULL, updated_at = ? WHERE id = ?", (now(), task["id"]))
+        conn.execute("UPDATE execution_runs SET status = 'awaiting_result_approval', rollback_state = 'not_required', claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL, heartbeat_at = NULL, updated_at = ? WHERE id = ?", (now(), run["id"]))
+        conn.execute(
+            """INSERT INTO approvals (company_id, task_id, title, summary, status, risk_level, approval_type, subject_type, subject_id, execution_run_id, created_at, updated_at)
+               VALUES (?, ?, ?, ?, 'pending', ?, 'result_acceptance', 'output', ?, ?, ?, ?)""",
+            (task["company_id"], task["id"], f"Accept result for {task['title']}", "Schema validation passed. Founder acceptance is required before this candidate becomes final.", risk, output_id, run["id"], now(), now()),
+        )
+        record_event(conn, task["company_id"], "result_approval_requested", f"Result approval requested for task #{task['id']}", result["summary"])
+    else:
+        timestamp = now()
+        conn.execute("UPDATE outputs SET status = 'final', review_status = 'passed', finalized_at = ? WHERE id = ?", (timestamp, output_id))
+        conn.execute("UPDATE tasks SET status = 'completed', claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL, heartbeat_at = NULL, updated_at = ? WHERE id = ?", (timestamp, task["id"]))
+        conn.execute("UPDATE execution_runs SET status = 'completed', rollback_state = 'complete', error_message = NULL, completed_at = ?, claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL, heartbeat_at = NULL, updated_at = ? WHERE id = ?", (timestamp, timestamp, run["id"]))
+        record_event(conn, task["company_id"], "task_executed", f"Task #{task['id']} completed", result["summary"])
 
 
 def block_bundle(
@@ -501,7 +544,11 @@ def block_bundle(
     reason: str,
 ) -> None:
     if task is not None:
-        write_output(conn, task, "blocked", reason, "")
+        existing = conn.execute("SELECT id FROM outputs WHERE task_id = ? LIMIT 1", (task["id"],)).fetchone()
+        if existing:
+            conn.execute("UPDATE outputs SET status = 'blocked', review_status = 'blocked', summary = ? WHERE id = ?", (reason, existing["id"]))
+        else:
+            conn.execute("INSERT INTO outputs (company_id, task_id, title, output_type, status, summary, execution_run_id, review_status, created_at) VALUES (?, ?, ?, 'result', 'blocked', ?, ?, 'blocked', ?)", (task["company_id"], task["id"], f"{task['title']} result", reason, run["id"], now()))
         conn.execute(
             "UPDATE tasks SET status = 'blocked', claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL, heartbeat_at = NULL, last_error = ?, updated_at = ? WHERE id = ?",
             (reason, now(), task["id"]),
@@ -566,7 +613,7 @@ def main() -> int:
         system, user = build_messages(persona_text, task)
 
         try:
-            raw_response = call_model(system, user)
+            raw_response, usage = call_model(system, user)
         except Exception as exc:
             reason = f"model call failed: {exc}"
             print(f"BLOCKED — {reason}", file=sys.stderr)
@@ -587,7 +634,7 @@ def main() -> int:
             return 4
 
         conn.execute("BEGIN IMMEDIATE")
-        commit_result(conn, run, task, result)
+        commit_result(conn, run, task, result, usage)
         conn.commit()
         heartbeat(conn, "idle")
 
