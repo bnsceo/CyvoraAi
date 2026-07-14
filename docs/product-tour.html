@@ -1138,7 +1138,7 @@
       .health-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
     }
 
-    @media (max-width: 960px) {
+    @media (max-width: 767px) and (pointer: coarse) {
       .app-shell { grid-template-columns: 1fr; }
       .sidebar {
         position: fixed;
@@ -1942,7 +1942,6 @@
 
   <div class="drawer-backdrop" id="drawerBackdrop" aria-hidden="true">
     <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
-      <button class="button" id="closeDrawer">Close</button>
       <p class="eyebrow" style="margin-top:22px">Static preview</p>
       <h2 id="drawerTitle">Cyvora detail</h2>
       <div id="drawerContent"></div>
@@ -1968,7 +1967,6 @@
     const drawerBackdrop = document.getElementById("drawerBackdrop");
     const drawerTitle = document.getElementById("drawerTitle");
     const drawerContent = document.getElementById("drawerContent");
-    const closeDrawer = document.getElementById("closeDrawer");
     const toast = document.getElementById("toast");
     const missionInput = document.getElementById("missionInput");
 
@@ -2217,7 +2215,6 @@
     });
 
     menuButton.addEventListener("click", () => sidebar.classList.toggle("open"));
-    closeDrawer.addEventListener("click", closeDetailDrawer);
     drawerBackdrop.addEventListener("click", event => {
       if (event.target === drawerBackdrop) closeDetailDrawer();
     });
