@@ -49,38 +49,39 @@ jobs:
           set -euo pipefail
           git apply --3way /tmp/cyvora-payload/0001.patch
 
-      - name: Diagnose supplied governed War Room patch
-        id: warroom
-        continue-on-error: true
+      - name: Apply supplied governed War Room system
         shell: bash
         run: |
+          set -euo pipefail
           set +e
           git apply --reject --whitespace=nowarn /tmp/cyvora-payload/0002.patch
-          code=$?
-          mkdir -p /tmp/warroom-diagnostic/rejects /tmp/warroom-diagnostic/files
-          find . -name '*.rej' -print > /tmp/warroom-diagnostic/rejected-files.txt
-          while IFS= read -r reject; do
-            [ -n "$reject" ] || continue
-            cp --parents "$reject" /tmp/warroom-diagnostic/rejects/
-            source_file="${reject%.rej}"
-            [ -f "$source_file" ] && cp --parents "$source_file" /tmp/warroom-diagnostic/files/
-          done < /tmp/warroom-diagnostic/rejected-files.txt
-          cp /tmp/cyvora-payload/0002.patch /tmp/warroom-diagnostic/
-          git status --short > /tmp/warroom-diagnostic/git-status.txt
-          echo "$code" > /tmp/warroom-diagnostic/exit-code.txt
-          exit "$code"
-
-      - name: Upload War Room conflict diagnostic
-        if: steps.warroom.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: warroom-patch-diagnostic
-          path: /tmp/warroom-diagnostic
-          if-no-files-found: error
-
-      - name: Stop when War Room patch needs reconciliation
-        if: steps.warroom.outcome == 'failure'
-        run: exit 1
+          patch_code=$?
+          set -e
+          rejects="$(find . -name '*.rej' -print)"
+          expected='./components/AppShell.tsx.rej'
+          if [ "$patch_code" -ne 0 ]; then
+            if [ "$rejects" != "$expected" ]; then
+              echo 'Unexpected rejected hunks:'
+              printf '%s\n' "$rejects"
+              exit 1
+            fi
+            python3 - <<'PY'
+from pathlib import Path
+path = Path('components/AppShell.tsx')
+text = path.read_text()
+old = "{ href: '/security', label: 'War Room', icon: 'warroom' as IconName },"
+new = "{ href: '/war-room', label: 'War Room', icon: 'warroom' as IconName },"
+if old not in text:
+    raise SystemExit('Expected War Room navigation route was not found.')
+path.write_text(text.replace(old, new, 1))
+PY
+            rm components/AppShell.tsx.rej
+          fi
+          if find . -name '*.rej' -print -quit | grep -q .; then
+            echo 'Unresolved patch rejects remain.'
+            find . -name '*.rej' -print
+            exit 1
+          fi
 
       - name: Remove one-time staging files
         shell: bash
