@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "acceptance:founder-loop:mock": "node scripts/acceptance/founder-loop.mock.mjs",
     "codex:free": "bash scripts/codex-free.sh"
   },
   "dependencies": {
