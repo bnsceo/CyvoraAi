@@ -13,7 +13,7 @@ const catalog: Record<string, { href: string; label: string; glyph: string }> = 
   agents: { href: '/agents', label: 'Agents', glyph: '●' },
   headquarters: { href: '/headquarters', label: 'HQ', glyph: '⌘' },
   harness: { href: '/harness-engineering', label: 'Harness', glyph: '⚙' },
-  warroom: { href: '/security', label: 'War Room', glyph: '⚠' },
+  warroom: { href: '/war-room', label: 'War Room', glyph: '⚠' },
   history: { href: '/history', label: 'History', glyph: '↻' },
 };
 

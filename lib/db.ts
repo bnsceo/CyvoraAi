@@ -20,6 +20,7 @@ function createBuildDatabaseStub(): Database {
     finalize: (callback?: (error?: Error | null) => void) => { if (callback) queueMicrotask(() => callback(null)); },
   });
   stub.close = (callback?: (error?: Error | null) => void) => { if (callback) queueMicrotask(() => callback(null)); };
+  stub.serialize = (fn?: () => void) => { if (fn) fn(); };
   return stub as Database;
 }
 
@@ -30,6 +31,13 @@ if (!SKIP_DB_INIT) {
 
 const sqliteModule = SKIP_DB_INIT ? null : sqlite3;
 const db: Database = SKIP_DB_INIT ? createBuildDatabaseStub() : new sqliteModule!.Database(DB_PATH);
+
+// All schema DDL (CREATE TABLE + column migrations) must run inside a single
+// db.serialize() block. Without this, node-sqlite3 does not guarantee that
+// CREATE TABLE statements complete before dependent ALTER TABLE / PRAGMA
+// calls run, which produced intermittent "no such table" / "no such column"
+// 500s the first time a fresh database file was created (cold start).
+db.serialize(() => {
 
 // --- Missions table (existing) ---
 db.run(`
@@ -311,6 +319,52 @@ db.run(`
   )
 `);
 
+db.run(`
+  CREATE TABLE IF NOT EXISTS operations_incidents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant TEXT NOT NULL,
+    company_id INTEGER,
+    fingerprint TEXT NOT NULL,
+    category TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open',
+    source_type TEXT NOT NULL,
+    source_id INTEGER,
+    title TEXT NOT NULL,
+    description TEXT,
+    remediation TEXT,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    acknowledged_at TEXT,
+    resolved_at TEXT,
+    resolution_note TEXT,
+    FOREIGN KEY(company_id) REFERENCES companies(id)
+  )
+`);
+
+db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_incidents_fingerprint ON operations_incidents (tenant, fingerprint)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_incidents_status ON operations_incidents (tenant, status)`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS recovery_actions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant TEXT NOT NULL,
+    incident_id INTEGER,
+    company_id INTEGER,
+    action_type TEXT NOT NULL,
+    target_type TEXT,
+    target_id INTEGER,
+    actor TEXT NOT NULL DEFAULT 'founder',
+    notes TEXT,
+    result TEXT NOT NULL DEFAULT 'applied',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(incident_id) REFERENCES operations_incidents(id),
+    FOREIGN KEY(company_id) REFERENCES companies(id)
+  )
+`);
+
+db.run(`CREATE INDEX IF NOT EXISTS idx_recovery_actions_chrono ON recovery_actions (tenant, created_at)`);
+
 function ensureColumn(table: string, column: string, definition: string): void {
   db.all(`PRAGMA table_info(${table})`, (err, rows: any[]) => {
     if (err) {
@@ -355,6 +409,8 @@ function ensureColumn(table: string, column: string, definition: string): void {
   ['execution_runs', 'attempt_count', 'INTEGER NOT NULL DEFAULT 0'],
   ['execution_runs', 'max_attempts', 'INTEGER NOT NULL DEFAULT 3'],
 ].forEach(([table, column, definition]) => ensureColumn(table, column, definition));
+
+}); // end db.serialize() schema-init block
 
 // --- Mission functions ---
 export function saveMission(data: {
@@ -1111,5 +1167,267 @@ export function finalizeApprovedResult(data: { approval_id: number; company_id: 
         db.run('COMMIT', (commitErr) => commitErr ? reject(commitErr) : resolve());
       });
     });
+  });
+}
+
+// --- War Room: worker fleet ---
+export function getWorkerHeartbeats(): Promise<any[]> {
+  return new Promise((resolve, reject) => {
+    db.all(`SELECT * FROM worker_heartbeats ORDER BY last_seen_at DESC`, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// --- War Room: incidents ---
+export type IncidentCondition = {
+  fingerprint: string;
+  category: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  source_type: string;
+  source_id?: number | null;
+  company_id?: number | null;
+  title: string;
+  description?: string;
+  remediation?: string;
+};
+
+export function upsertIncident(tenant: string, condition: IncidentCondition): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const now = new Date().toISOString();
+    db.get(
+      `SELECT id, status FROM operations_incidents WHERE tenant = ? AND fingerprint = ?`,
+      [tenant, condition.fingerprint],
+      (err, row: any) => {
+        if (err) { reject(err); return; }
+        if (row) {
+          const nextStatus = row.status === 'resolved' ? 'open' : row.status;
+          db.run(
+            `UPDATE operations_incidents
+             SET last_seen_at = ?, status = ?, severity = ?, title = ?, description = ?, remediation = ?,
+                 resolved_at = CASE WHEN ? = 'open' THEN NULL ELSE resolved_at END
+             WHERE id = ?`,
+            [now, nextStatus, condition.severity, condition.title, condition.description || '', condition.remediation || '', nextStatus, row.id],
+            (updateErr) => (updateErr ? reject(updateErr) : resolve(row.id))
+          );
+          return;
+        }
+        const stmt = db.prepare(
+          `INSERT INTO operations_incidents (
+            tenant, company_id, fingerprint, category, severity, status, source_type, source_id,
+            title, description, remediation, first_seen_at, last_seen_at
+          ) VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?)`
+        );
+        stmt.run(
+          tenant,
+          condition.company_id ?? null,
+          condition.fingerprint,
+          condition.category,
+          condition.severity,
+          condition.source_type,
+          condition.source_id ?? null,
+          condition.title,
+          condition.description || '',
+          condition.remediation || '',
+          now,
+          now,
+          function (this: RunResult, insertErr: Error | null) {
+            if (insertErr) reject(insertErr);
+            else resolve(this.lastID);
+          }
+        );
+        stmt.finalize();
+      }
+    );
+  });
+}
+
+export function autoResolveStaleIncidents(tenant: string, activeFingerprints: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const now = new Date().toISOString();
+    const placeholders = activeFingerprints.length ? activeFingerprints.map(() => '?').join(',') : `''`;
+    const notInClause = activeFingerprints.length ? `AND fingerprint NOT IN (${placeholders})` : '';
+    db.run(
+      `UPDATE operations_incidents
+       SET status = 'resolved', resolved_at = ?, resolution_note = COALESCE(resolution_note, 'Auto-resolved: underlying condition cleared on rescan.')
+       WHERE tenant = ? AND status IN ('open', 'acknowledged') ${notInClause}`,
+      [now, tenant, ...activeFingerprints],
+      (err) => (err ? reject(err) : resolve())
+    );
+  });
+}
+
+export function getIncidents(tenant: string, status?: string): Promise<any[]> {
+  return new Promise((resolve, reject) => {
+    const sql = status
+      ? `SELECT * FROM operations_incidents WHERE tenant = ? AND status = ? ORDER BY severity = 'critical' DESC, last_seen_at DESC`
+      : `SELECT * FROM operations_incidents WHERE tenant = ? ORDER BY (status = 'resolved') ASC, last_seen_at DESC LIMIT 100`;
+    const params = status ? [tenant, status] : [tenant];
+    db.all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+export function getIncidentById(id: number, tenant: string): Promise<any | null> {
+  return new Promise((resolve, reject) => {
+    db.get(`SELECT * FROM operations_incidents WHERE id = ? AND tenant = ?`, [id, tenant], (err, row) => {
+      if (err) reject(err);
+      else resolve(row || null);
+    });
+  });
+}
+
+export function updateIncidentStatus(data: {
+  id: number;
+  tenant: string;
+  status: 'acknowledged' | 'resolved';
+  resolution_note?: string;
+}): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const now = new Date().toISOString();
+    const columns =
+      data.status === 'acknowledged'
+        ? `status = 'acknowledged', acknowledged_at = ?`
+        : `status = 'resolved', resolved_at = ?, resolution_note = COALESCE(?, resolution_note)`;
+    const params =
+      data.status === 'acknowledged'
+        ? [now, data.id, data.tenant]
+        : [now, data.resolution_note || null, data.id, data.tenant];
+    db.run(`UPDATE operations_incidents SET ${columns} WHERE id = ? AND tenant = ?`, params, (err) =>
+      err ? reject(err) : resolve()
+    );
+  });
+}
+
+// --- War Room: recovery actions ---
+export function saveRecoveryAction(data: {
+  tenant: string;
+  incident_id?: number | null;
+  company_id?: number | null;
+  action_type: string;
+  target_type?: string;
+  target_id?: number;
+  actor?: string;
+  notes?: string;
+  result?: string;
+}): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const stmt = db.prepare(
+      `INSERT INTO recovery_actions (tenant, incident_id, company_id, action_type, target_type, target_id, actor, notes, result, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    stmt.run(
+      data.tenant,
+      data.incident_id ?? null,
+      data.company_id ?? null,
+      data.action_type,
+      data.target_type || null,
+      data.target_id ?? null,
+      data.actor || 'founder',
+      data.notes || '',
+      data.result || 'applied',
+      new Date().toISOString(),
+      function (this: RunResult, err: Error | null) {
+        if (err) reject(err);
+        else resolve(this.lastID);
+      }
+    );
+    stmt.finalize();
+  });
+}
+
+export function getRecoveryActions(tenant: string, limit = 20): Promise<any[]> {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT * FROM recovery_actions WHERE tenant = ? ORDER BY created_at DESC LIMIT ?`,
+      [tenant, limit],
+      (err, rows) => (err ? reject(err) : resolve(rows))
+    );
+  });
+}
+
+// --- War Room: governed retry / requeue transactions ---
+export function retryExecutionRun(data: { id: number; tenant: string }): Promise<{ ok: boolean; reason?: string }> {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT * FROM execution_runs WHERE id = ? AND tenant = ?`,
+      [data.id, data.tenant],
+      (err, row: any) => {
+        if (err) { reject(err); return; }
+        if (!row) { resolve({ ok: false, reason: 'Execution run not found for this tenant.' }); return; }
+        if (!['blocked', 'failed'].includes(row.status)) {
+          resolve({ ok: false, reason: `Execution run is '${row.status}', not eligible for retry.` });
+          return;
+        }
+        if ((row.attempt_count || 0) >= (row.max_attempts || 3)) {
+          resolve({ ok: false, reason: 'Retry limit reached for this execution run.' });
+          return;
+        }
+        const now = new Date().toISOString();
+        db.serialize(() => {
+          db.run('BEGIN IMMEDIATE');
+          db.run(
+            `UPDATE execution_runs
+             SET status = 'queued', claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL,
+                 heartbeat_at = NULL, attempt_count = attempt_count + 1, error_message = NULL, updated_at = ?
+             WHERE id = ?`,
+            [now, data.id]
+          );
+          db.run(
+            `INSERT INTO activity_events (company_id, event_type, title, description, created_at)
+             VALUES (?, 'execution_run_retried', ?, ?, ?)`,
+            [row.company_id, `Execution run #${data.id} requeued`, 'Founder-triggered retry from War Room.', now],
+            (insertErr) => {
+              if (insertErr) { db.run('ROLLBACK'); reject(insertErr); return; }
+              db.run('COMMIT', (commitErr) => (commitErr ? reject(commitErr) : resolve({ ok: true })));
+            }
+          );
+        });
+      }
+    );
+  });
+}
+
+export function requeueTask(data: { id: number; tenant: string }): Promise<{ ok: boolean; reason?: string; company_id?: number }> {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT t.*, c.tenant AS company_tenant FROM tasks t JOIN companies c ON c.id = t.company_id WHERE t.id = ? AND c.tenant = ?`,
+      [data.id, data.tenant],
+      (err, row: any) => {
+        if (err) { reject(err); return; }
+        if (!row) { resolve({ ok: false, reason: 'Task not found for this tenant.' }); return; }
+        if (!['blocked', 'failed'].includes(row.status)) {
+          resolve({ ok: false, reason: `Task is '${row.status}', not eligible for requeue.` });
+          return;
+        }
+        if ((row.attempt_count || 0) >= (row.max_attempts || 3)) {
+          resolve({ ok: false, reason: 'Retry limit reached for this task.' });
+          return;
+        }
+        const now = new Date().toISOString();
+        db.serialize(() => {
+          db.run('BEGIN IMMEDIATE');
+          db.run(
+            `UPDATE tasks
+             SET status = 'active', claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL,
+                 heartbeat_at = NULL, attempt_count = attempt_count + 1, last_error = NULL, updated_at = ?
+             WHERE id = ?`,
+            [now, data.id]
+          );
+          db.run(
+            `INSERT INTO activity_events (company_id, event_type, title, description, created_at)
+             VALUES (?, 'task_requeued', ?, ?, ?)`,
+            [row.company_id, `Task #${data.id} returned to active status`, 'Founder-triggered requeue from War Room.', now],
+            (insertErr) => {
+              if (insertErr) { db.run('ROLLBACK'); reject(insertErr); return; }
+              db.run('COMMIT', (commitErr) => (commitErr ? reject(commitErr) : resolve({ ok: true, company_id: row.company_id })));
+            }
+          );
+        });
+      }
+    );
   });
 }
