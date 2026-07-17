@@ -1,141 +1,91 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import MobileDock from '@/components/MobileDock';
+import EntityDrawer from '@/components/EntityDrawer';
 import OperatingSystemControls from '@/components/OperatingSystemControls';
 import { getRuntimeModeInfo } from '@/lib/runtimeMode';
 
-type IconName = 'home' | 'command' | 'executive' | 'briefing' | 'companies' | 'agents' | 'headquarters' | 'harness' | 'warroom' | 'history' | 'menu' | 'bell' | 'search' | 'close' | 'collapse';
+type LinkItem = { href: string; label: string; glyph: string };
+type Group = { label: string; items: LinkItem[] };
 
-function Icon({ name, className = 'h-4 w-4' }: { name: IconName; className?: string }) {
-  const paths: Record<IconName, ReactNode> = {
-    home: <><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9 20v-6h6v6"/></>,
-    command: <><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 8h8M8 12h5M8 16h7"/></>,
-    executive: <><path d="M12 3 9.8 8.4 4 10.2l4.6 3.7-.2 5.9 3.6-4.6 5.6 2-.9-5.8 3.7-4.6-5.8-.9L12 3Z"/><circle cx="12" cy="11" r="2"/></>,
-    briefing: <><path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h8M8 15h5"/></>,
-    companies: <><rect x="3" y="5" width="8" height="14" rx="1.5"/><rect x="13" y="3" width="8" height="16" rx="1.5"/><path d="M6 9h2M6 13h2M16 7h2M16 11h2M16 15h2"/></>,
-    agents: <><circle cx="8" cy="8" r="3"/><circle cx="17" cy="7" r="2"/><path d="M3 20c0-4 2-7 5-7s5 3 5 7M14 20c0-3 1.4-5 3.5-5S21 17 21 20"/></>,
-    headquarters: <><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4M5 15.5v-2h14v2"/></>,
-    harness: <><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="4"/></>,
-    warroom: <><path d="M12 3 2.8 19h18.4L12 3Z"/><path d="M12 9v4M12 16.5v.1"/></>,
-    history: <><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></>,
-    menu: <><path d="M4 7h16M4 12h16M4 17h16"/></>,
-    bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,
-    search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
-    close: <><path d="m6 6 12 12M18 6 6 18"/></>,
-    collapse: <><path d="m14 6-6 6 6 6"/><path d="M20 4v16"/></>,
-  };
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>{paths[name]}</svg>;
-}
-
-const primaryLinks = [
-  { href: '/', label: 'Home', icon: 'home' as IconName },
-  { href: '/command-center', label: 'Command Center', icon: 'command' as IconName },
-  { href: '/executive-ai', label: 'Executive AI', icon: 'executive' as IconName },
-  { href: '/briefing', label: 'Executive Briefing', icon: 'briefing' as IconName },
-  { href: '/companies', label: 'Companies', icon: 'companies' as IconName },
-  { href: '/agents', label: 'Agents', icon: 'agents' as IconName },
-  { href: '/headquarters', label: 'Headquarters', icon: 'headquarters' as IconName },
+const groups: Group[] = [
+  { label: 'Control', items: [
+    { href: '/command-center', label: 'Command Center', glyph: '⌘' },
+    { href: '/briefing', label: 'Executive Briefing', glyph: 'B' },
+    { href: '/approvals', label: 'Approvals', glyph: '✓' },
+  ]},
+  { label: 'Intelligence', items: [
+    { href: '/market-intelligence', label: 'Market Intelligence', glyph: 'MI' },
+    { href: '/executive-ai', label: 'Blueprints', glyph: 'BP' },
+  ]},
+  { label: 'Organization', items: [
+    { href: '/companies', label: 'Companies', glyph: 'C' },
+    { href: '/headquarters', label: 'Headquarters', glyph: 'HQ' },
+    { href: '/agents', label: 'Agents', glyph: 'A' },
+  ]},
+  { label: 'Execution', items: [
+    { href: '/runs', label: 'Execution Runs', glyph: 'R' },
+    { href: '/connectors', label: 'Connectors', glyph: 'CN' },
+  ]},
+  { label: 'Governance', items: [
+    { href: '/security', label: 'Policy & Security', glyph: 'P' },
+    { href: '/harness-engineering', label: 'Harness', glyph: 'H' },
+    { href: '/war-room', label: 'War Room', glyph: '!' },
+  ]},
+  { label: 'Memory', items: [
+    { href: '/history', label: 'History', glyph: '↻' },
+    { href: '/evidence', label: 'Evidence & Outputs', glyph: 'E' },
+  ]},
 ];
 
-const operationsLinks = [
-  { href: '/harness-engineering', label: 'Harness', icon: 'harness' as IconName },
-  { href: '/security', label: 'War Room', icon: 'warroom' as IconName },
-  { href: '/history', label: 'History', icon: 'history' as IconName },
-];
-
-function isActive(pathname: string, href: string) {
-  return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function pageTitle(pathname: string) {
-  const link = [...primaryLinks, ...operationsLinks].find((item) => isActive(pathname, item.href));
-  if (pathname.startsWith('/companies/')) return 'Company Detail';
-  if (pathname.startsWith('/agents/')) return 'Agent Profile';
-  return link?.label || 'Cyvora';
-}
-
-
-type SidebarContentProps = {
-  pathname: string;
-  runtime: ReturnType<typeof getRuntimeModeInfo>;
-  health: 'online' | 'degraded';
-  avgLatency: string;
-  mobile?: boolean;
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
-};
-
-function SidebarContent({ pathname, runtime, health, avgLatency, mobile = false, collapsed, onToggleCollapsed }: SidebarContentProps) {
-  return <>
-    <div className="flex items-center gap-2">
-      <Link href="/" className="cyvora-shell-brand min-w-0 flex-1" aria-label="Cyvora Home">
-        <span className="cyvora-shell-mark"><Image src="/cyvora-mark.svg" alt="" width={34} height={34} className="h-8 w-8" /></span>
-        <span className="cyvora-sidebar-copy min-w-0 leading-tight"><span className="block text-[15px] font-semibold tracking-[0.02em] text-white">Cyvora</span><span className="mt-1 block truncate text-[9px] uppercase tracking-[0.22em] text-cyan-200/75">AI Business OS</span></span>
-      </Link>
-      {!mobile ? <button onClick={onToggleCollapsed} className="cyvora-shell-icon-button cyvora-collapse-button" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}><Icon name="collapse" className={`h-4 w-4 transition ${collapsed ? 'rotate-180' : ''}`} /></button> : null}
-    </div>
-    <nav className="mt-6" aria-label="Primary navigation"><p className="cyvora-shell-nav-label cyvora-sidebar-copy">Workspace</p><div className="space-y-1.5">{primaryLinks.map((link) => <Link key={link.href} href={link.href} title={link.label} className={`cyvora-shell-nav-item ${isActive(pathname, link.href) ? 'is-active' : ''}`}><span className="cyvora-shell-nav-icon"><Icon name={link.icon} /></span><span className="cyvora-sidebar-copy truncate">{link.label}</span></Link>)}</div></nav>
-    <nav className="mt-7" aria-label="Operations navigation"><p className="cyvora-shell-nav-label cyvora-sidebar-copy">Operations</p><div className="space-y-1.5">{operationsLinks.map((link) => <Link key={link.href} href={link.href} title={link.label} className={`cyvora-shell-nav-item ${isActive(pathname, link.href) ? 'is-active' : ''}`}><span className="cyvora-shell-nav-icon"><Icon name={link.icon} /></span><span className="cyvora-sidebar-copy truncate">{link.label}</span></Link>)}</div></nav>
-    <div className="mt-auto pt-6"><div className="cyvora-shell-runtime"><div className="flex items-center justify-between gap-3"><span className="cyvora-sidebar-copy text-xs font-semibold text-white">{runtime.label}</span><span className={`h-2 w-2 rounded-full ${health === 'online' ? 'bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.85)]' : 'bg-amber-300'}`} /></div><div className="cyvora-sidebar-copy"><p className="mt-2 text-[10px] leading-5 text-slate-400">{runtime.description}</p><div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3 text-[10px] text-slate-500"><span>{health === 'online' ? 'System nominal' : 'Check health'}</span><span>{avgLatency}</span></div></div></div></div>
-  </>;
-}
+function active(pathname: string, href: string) { return pathname === href || pathname.startsWith(`${href}/`); }
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const runtime = getRuntimeModeInfo();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(true);
-  const [avgLatency, setAvgLatency] = useState('—');
-  const [health, setHealth] = useState<'online' | 'degraded'>('online');
-  const title = useMemo(() => pageTitle(pathname), [pathname]);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [health, setHealth] = useState<'healthy' | 'degraded'>('healthy');
+  const [latency, setLatency] = useState('—');
   const publicRoute = pathname.startsWith('/unlock');
 
-  useEffect(() => {
-    const saved = window.localStorage.getItem('cyvora.sidebarCollapsed');
-    setCollapsed(saved === null ? true : saved === 'true');
-  }, []);
+  const current = useMemo(() => groups.flatMap((group) => group.items).find((item) => active(pathname, item.href)), [pathname]);
 
-  useEffect(() => { setDrawerOpen(false); }, [pathname]);
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
   useEffect(() => {
     if (publicRoute) return;
-    let alive = true;
-    Promise.allSettled([
-      fetch('/api/analytics').then((response) => response.json()),
-      fetch('/api/health').then((response) => response.json()),
-    ]).then(([analyticsResult, healthResult]) => {
-      if (!alive) return;
-      setAvgLatency(analyticsResult.status === 'fulfilled' && analyticsResult.value?.averageResponseTime ? analyticsResult.value.averageResponseTime : 'n/a');
+    Promise.allSettled([fetch('/api/health').then((r) => r.json()), fetch('/api/analytics').then((r) => r.json())]).then(([healthResult, analyticsResult]) => {
       if (healthResult.status === 'fulfilled' && healthResult.value?.status && healthResult.value.status !== 'healthy') setHealth('degraded');
+      if (analyticsResult.status === 'fulfilled' && analyticsResult.value?.averageResponseTime) setLatency(analyticsResult.value.averageResponseTime);
     });
-    return () => { alive = false; };
   }, [publicRoute]);
-
-  function toggleCollapsed() {
-    setCollapsed((current) => {
-      const next = !current;
-      window.localStorage.setItem('cyvora.sidebarCollapsed', String(next));
-      return next;
-    });
-  }
 
   if (publicRoute) return <>{children}</>;
 
-  return <div className={`cyvora-app-shell ${collapsed ? 'cyvora-shell-is-collapsed' : ''}`}>
-    <aside className="cyvora-app-sidebar hidden lg:flex"><SidebarContent pathname={pathname} runtime={runtime} health={health} avgLatency={avgLatency} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} /></aside>
-    {drawerOpen ? <div className="fixed inset-0 z-[80] lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation"><button className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} aria-label="Close navigation" /><aside className="cyvora-app-sidebar relative flex h-full w-[min(19rem,88vw)]"><button onClick={() => setDrawerOpen(false)} className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-300" aria-label="Close navigation"><Icon name="close" /></button><SidebarContent pathname={pathname} runtime={runtime} health={health} avgLatency={avgLatency} mobile collapsed={false} onToggleCollapsed={toggleCollapsed} /></aside></div> : null}
-
-    <div className="cyvora-shell-main min-w-0">
-      <header className="cyvora-app-topbar"><div className="flex min-w-0 items-center gap-3"><button onClick={() => setDrawerOpen(true)} className="cyvora-shell-icon-button lg:hidden" aria-label="Open navigation"><Icon name="menu" /></button><button onClick={toggleCollapsed} className="cyvora-shell-icon-button hidden lg:grid" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}><Icon name="menu" /></button><div className="min-w-0"><div className="flex items-center gap-2 text-[10px] text-slate-600"><Link href="/">Cyvora</Link><span>/</span><span className="text-cyan-100/70">{title}</span></div><p className="mt-1 truncate text-sm font-semibold text-white">{title}</p></div></div>
-        <div className="flex items-center gap-2"><button onClick={() => window.dispatchEvent(new Event('cyvora:commands'))} className="cyvora-shell-search hidden sm:flex" aria-label="Open command palette"><Icon name="search" /><span>Search</span><kbd>⌘K</kbd></button><button onClick={() => window.dispatchEvent(new Event('cyvora:notifications'))} className="cyvora-shell-icon-button relative" aria-label="Notifications"><Icon name="bell" /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-400" /></button><button onClick={() => window.dispatchEvent(new Event('cyvora:workspace'))} className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-300/15 bg-cyan-300/[0.06] text-xs font-bold text-cyan-100">AP</button></div>
-      </header>
-      <div className="cyvora-app-content">{children}</div>
-      <footer className="border-t border-white/[0.06] px-5 py-5 text-center text-[10px] text-slate-600"><div className="mx-auto flex items-center justify-center gap-2"><Image src="/cyvora-header-logo.png" alt="Cyvora" width={88} height={20} className="h-5 w-auto" /><span>Created by Anderson · Founder · Cyvora</span></div></footer>
+  const Navigation = ({ mobile = false }: { mobile?: boolean }) => <div className="flex h-full flex-col bg-white">
+    <div className="flex min-h-20 items-center gap-3 border-b border-slate-200 px-4">
+      <Link href="/command-center" className="min-w-0 flex-1"><span className="block font-semibold tracking-[.15em] text-slate-950">CYVORA</span>{!collapsed || mobile ? <span className="mt-1 block text-[9px] uppercase tracking-[.2em] text-slate-400">Founder operating system</span> : null}</Link>
+      {!mobile ? <button onClick={() => setCollapsed((value) => !value)} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50" aria-label="Toggle navigation">{collapsed ? '›' : '‹'}</button> : null}
     </div>
+    <div className="flex-1 overflow-y-auto px-3 py-5">{groups.map((group) => <nav key={group.label} className="mb-6" aria-label={group.label}>{!collapsed || mobile ? <p className="mb-2 px-2 font-mono text-[9px] uppercase tracking-[.18em] text-slate-400">{group.label}</p> : null}<div className="space-y-1">{group.items.map((item) => <Link key={item.href} href={item.href} title={item.label} className={`flex min-h-11 items-center gap-3 rounded-xl px-2.5 text-sm transition ${active(pathname, item.href) ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border font-mono text-[9px] ${active(pathname, item.href) ? 'border-white/15 bg-white/10 text-white' : 'border-slate-200 bg-white text-slate-500'}`}>{item.glyph}</span>{!collapsed || mobile ? <span className="truncate">{item.label}</span> : null}</Link>)}</div></nav>)}</div>
+    <div className="border-t border-slate-200 p-3"><div className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-slate-900">{!collapsed || mobile ? runtime.label : 'Mode'}</span><span className={`h-2 w-2 rounded-full ${health === 'healthy' ? 'bg-emerald-500' : 'bg-amber-500'}`} /></div>{!collapsed || mobile ? <><p className="mt-2 text-[10px] leading-5 text-slate-500">{runtime.description}</p><div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-mono text-[9px] text-slate-400"><span>{health}</span><span>{latency}</span></div></> : null}</div></div>
+  </div>;
+
+  return <div className={`min-h-screen bg-[#f7f7f5] text-slate-950 ${collapsed ? 'lg:grid-cols-[78px_minmax(0,1fr)]' : 'lg:grid-cols-[254px_minmax(0,1fr)]'} lg:grid`}>
+    <aside className="sticky top-0 hidden h-screen border-r border-slate-200 lg:block"><Navigation /></aside>
+    {mobileOpen ? <div className="fixed inset-0 z-[100] lg:hidden"><button className="absolute inset-0 bg-slate-950/25" onClick={() => setMobileOpen(false)} aria-label="Close navigation" /><aside className="relative h-full w-[min(19rem,88vw)] border-r border-slate-200 shadow-2xl"><Navigation mobile /></aside></div> : null}
+
+    <div className="min-w-0">
+      <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between gap-4 border-b border-slate-200 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl md:px-6">
+        <div className="flex min-w-0 items-center gap-3"><button onClick={() => setMobileOpen(true)} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 lg:hidden" aria-label="Open navigation">☰</button><div className="min-w-0"><div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.12em] text-slate-400"><span>Cyvora</span><span>/</span><span>{groups.find((group) => group.items.some((item) => item.href === current?.href))?.label || 'System'}</span></div><h1 className="mt-1 truncate text-sm font-semibold text-slate-950">{current?.label || 'Founder OS'}</h1></div></div>
+        <div className="flex items-center gap-2"><button onClick={() => window.dispatchEvent(new Event('cyvora:commands'))} className="hidden min-h-10 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-500 shadow-sm sm:flex"><span>Search or command</span><kbd className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[9px]">⌘K</kbd></button><button onClick={() => window.dispatchEvent(new Event('cyvora:notifications'))} className="relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600">◉<span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" /></button><button className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-xs font-semibold text-white">AP</button></div>
+      </header>
+      <main>{children}</main>
+      <footer className="border-t border-slate-200 px-5 py-6 text-center text-[10px] text-slate-400">CYVORA · Build with precision. Govern every decision.</footer>
+    </div>
+    <EntityDrawer />
     <OperatingSystemControls />
-    <MobileDock />
   </div>;
 }
