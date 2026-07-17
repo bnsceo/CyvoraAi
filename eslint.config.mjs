@@ -11,15 +11,17 @@ const eslintConfig = defineConfig([
       // TypeScript's strict build remains the source of truth while those
       // boundaries are progressively modeled with domain interfaces.
       "@typescript-eslint/no-explicit-any": "off",
-      // These compiler-oriented rules reject standard client-side data-loading
-      // effects and imperative browser navigation used by this dashboard.
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      // The application shell and drawers intentionally use browser events,
+      // route-change effects, and imperative state hydration.
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/immutability": "off",
+      "react-hooks/exhaustive-deps": "warn",
+      // Product copy may contain contractions and quoted founder language.
+      "react/no-unescaped-entities": "off",
     },
   },
-  // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
