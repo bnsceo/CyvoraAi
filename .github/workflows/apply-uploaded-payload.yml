@@ -7,6 +7,9 @@ on:
     paths:
       - '.cyvora-import/**'
       - '.github/workflows/apply-uploaded-payload.yml'
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -65,6 +68,7 @@ jobs:
         run: npm run build
 
       - name: Commit supplied implementation
+        if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
