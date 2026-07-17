@@ -49,21 +49,38 @@ jobs:
           set -euo pipefail
           git apply --3way /tmp/cyvora-payload/0001.patch
 
-      - name: Apply supplied governed War Room system
+      - name: Diagnose supplied governed War Room patch
+        id: warroom
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
-          git apply --3way /tmp/cyvora-payload/0002.patch
+          set +e
+          git apply --reject --whitespace=nowarn /tmp/cyvora-payload/0002.patch
+          code=$?
+          mkdir -p /tmp/warroom-diagnostic/rejects /tmp/warroom-diagnostic/files
+          find . -name '*.rej' -print > /tmp/warroom-diagnostic/rejected-files.txt
+          while IFS= read -r reject; do
+            [ -n "$reject" ] || continue
+            cp --parents "$reject" /tmp/warroom-diagnostic/rejects/
+            source_file="${reject%.rej}"
+            [ -f "$source_file" ] && cp --parents "$source_file" /tmp/warroom-diagnostic/files/
+          done < /tmp/warroom-diagnostic/rejected-files.txt
+          cp /tmp/cyvora-payload/0002.patch /tmp/warroom-diagnostic/
+          git status --short > /tmp/warroom-diagnostic/git-status.txt
+          echo "$code" > /tmp/warroom-diagnostic/exit-code.txt
+          exit "$code"
 
-      - name: Confirm no unresolved patch conflicts
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --name-only --diff-filter=U | grep -q .; then
-            echo 'Unresolved patch conflicts:'
-            git diff --name-only --diff-filter=U
-            exit 1
-          fi
+      - name: Upload War Room conflict diagnostic
+        if: steps.warroom.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: warroom-patch-diagnostic
+          path: /tmp/warroom-diagnostic
+          if-no-files-found: error
+
+      - name: Stop when War Room patch needs reconciliation
+        if: steps.warroom.outcome == 'failure'
+        run: exit 1
 
       - name: Remove one-time staging files
         shell: bash
