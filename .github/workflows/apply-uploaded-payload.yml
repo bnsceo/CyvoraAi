@@ -65,16 +65,8 @@ jobs:
               printf '%s\n' "$rejects"
               exit 1
             fi
-            python3 - <<'PY'
-from pathlib import Path
-path = Path('components/AppShell.tsx')
-text = path.read_text()
-old = "{ href: '/security', label: 'War Room', icon: 'warroom' as IconName },"
-new = "{ href: '/war-room', label: 'War Room', icon: 'warroom' as IconName },"
-if old not in text:
-    raise SystemExit('Expected War Room navigation route was not found.')
-path.write_text(text.replace(old, new, 1))
-PY
+            grep -Fq "{ href: '/security', label: 'War Room', icon: 'warroom' as IconName }," components/AppShell.tsx
+            sed -i "s|{ href: '/security', label: 'War Room', icon: 'warroom' as IconName },|{ href: '/war-room', label: 'War Room', icon: 'warroom' as IconName },|" components/AppShell.tsx
             rm components/AppShell.tsx.rej
           fi
           if find . -name '*.rej' -print -quit | grep -q .; then
