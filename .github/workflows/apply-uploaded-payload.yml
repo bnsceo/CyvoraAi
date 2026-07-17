@@ -65,8 +65,7 @@ jobs:
               printf '%s\n' "$rejects"
               exit 1
             fi
-            grep -Fq "{ href: '/security', label: 'War Room', icon: 'warroom' as IconName }," components/AppShell.tsx
-            sed -i "s|{ href: '/security', label: 'War Room', icon: 'warroom' as IconName },|{ href: '/war-room', label: 'War Room', icon: 'warroom' as IconName },|" components/AppShell.tsx
+            grep -Eq "href: '/war-room'.*label: 'War Room'" components/AppShell.tsx
             rm components/AppShell.tsx.rej
           fi
           if find . -name '*.rej' -print -quit | grep -q .; then
