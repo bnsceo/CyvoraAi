@@ -127,7 +127,7 @@ export default function OperatingSystemControls() {
     { id: 'hq', label: 'Open Headquarters', description: 'Organization graph and live operations', href: '/headquarters', keywords: 'headquarters agents teams departments operations' },
     { id: 'approvals', label: 'Review Approvals', description: 'Founder decisions inside Command Center', href: '/command-center', keywords: 'approve review risk' },
     { id: 'harness', label: 'Open Harness', description: 'Software and runtime requests', href: '/harness-engineering', keywords: 'harness engineering code' },
-    { id: 'warroom', label: 'Open War Room', description: 'Health, incidents, and recovery', href: '/security', keywords: 'war room incidents health security' },
+    { id: 'warroom', label: 'Open War Room', description: 'Health, incidents, and recovery', href: '/war-room', keywords: 'war room incidents health security' },
     { id: 'history', label: 'Open History', description: 'Audit and execution timeline', href: '/history', keywords: 'history audit runs' },
     { id: 'activity', label: 'Show Recent Activity', description: 'Latest mission and runtime events', action: () => setPanel('activity'), keywords: 'recent activity timeline' },
     { id: 'workspace', label: 'Switch Workspace', description: `Current workspace: ${workspace}`, action: () => setPanel('workspace'), keywords: 'workspace tenant switch' },
