@@ -47,10 +47,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git apply --check /tmp/cyvora-payload/0001.patch
-          git apply /tmp/cyvora-payload/0001.patch
-          git apply --check /tmp/cyvora-payload/0002.patch
-          git apply /tmp/cyvora-payload/0002.patch
+          git apply --3way /tmp/cyvora-payload/0001.patch
+          git apply --3way /tmp/cyvora-payload/0002.patch
+          if git diff --name-only --diff-filter=U | grep -q .; then
+            echo 'Unresolved patch conflicts:'
+            git diff --name-only --diff-filter=U
+            exit 1
+          fi
 
       - name: Remove one-time staging files
         shell: bash
