@@ -43,12 +43,22 @@ jobs:
           cp /tmp/cyvora-payload/package/lib/useBreakpoint.ts lib/useBreakpoint.ts
           cp /tmp/cyvora-payload/package/lib/useOverlayA11y.ts lib/useOverlayA11y.ts
 
-      - name: Apply supplied database and War Room patches
+      - name: Apply supplied database initialization fix
         shell: bash
         run: |
           set -euo pipefail
           git apply --3way /tmp/cyvora-payload/0001.patch
+
+      - name: Apply supplied governed War Room system
+        shell: bash
+        run: |
+          set -euo pipefail
           git apply --3way /tmp/cyvora-payload/0002.patch
+
+      - name: Confirm no unresolved patch conflicts
+        shell: bash
+        run: |
+          set -euo pipefail
           if git diff --name-only --diff-filter=U | grep -q .; then
             echo 'Unresolved patch conflicts:'
             git diff --name-only --diff-filter=U
