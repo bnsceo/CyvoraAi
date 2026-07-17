@@ -32,7 +32,14 @@ jobs:
           mkdir -p .github/pages
           cp docs/cyvora-full-app-showcase.html .github/pages/index.html
           cp docs/product-tour.html .github/pages/product-tour.html
-          cp public/cyvora-logo.png .github/pages/og-cyvora.png
+          if [ -d docs/assets ]; then
+            cp -R docs/assets .github/pages/assets
+          fi
+          if [ -f docs/assets/brand/cyvora-og-preview.webp ]; then
+            cp docs/assets/brand/cyvora-og-preview.webp .github/pages/og-cyvora.webp
+          elif [ -f public/cyvora-logo.png ]; then
+            cp public/cyvora-logo.png .github/pages/og-cyvora.png
+          fi
           touch .github/pages/.nojekyll
 
       - name: Setup Pages
