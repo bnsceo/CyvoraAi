@@ -32,6 +32,7 @@ jobs:
           mkdir -p .github/pages
           cp docs/cyvora-full-app-showcase.html .github/pages/index.html
           cp docs/product-tour.html .github/pages/product-tour.html
+          cp public/cyvora-logo.png .github/pages/og-cyvora.png
           touch .github/pages/.nojekyll
 
       - name: Setup Pages
