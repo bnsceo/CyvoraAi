@@ -1,1 +1,1 @@
-Missing expected source in components/CompanyDetailSurface.tsx: '       </div>\n     </div>\n   );\n }'
+Missing expected source in components/CompanyDetailSurface.tsx: '                     onClick={() => approve(approval.id)}'
