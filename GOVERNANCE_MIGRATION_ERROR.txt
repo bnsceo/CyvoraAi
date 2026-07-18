@@ -1,1 +1,0 @@
-Missing expected source in components/CompanyDetailSurface.tsx: '                     onClick={() => approve(approval.id)}'
