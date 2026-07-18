@@ -569,7 +569,6 @@ export function saveDepartment(data: {
       data.company_id,
       data.name,
       data.description || '',
-      data.trace_id || newTraceId(),
       new Date().toISOString(),
       function (this: RunResult, err: Error | null) {
         if (err) reject(err);
@@ -987,6 +986,7 @@ export function saveActivityEvent(data: {
       data.event_type,
       data.title,
       data.description || '',
+      data.trace_id || newTraceId(),
       new Date().toISOString(),
       function (this: RunResult, err: Error | null) {
         if (err) reject(err);
