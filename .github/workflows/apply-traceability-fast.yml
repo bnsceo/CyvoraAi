@@ -1,0 +1,140 @@
+name: Apply traceability and production showcase
+
+on:
+  push:
+    branches: [feature/traceability-production-showcase]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-verify-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/traceability-production-showcase
+          fetch-depth: 0
+
+      - name: Apply traceability migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=-1):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'missing expected text in {path}: {old[:90]!r}')
+              p.write_text(text.replace(old, new, count))
+
+          # Repository hygiene.
+          p = Path('.gitignore')
+          text = p.read_text()
+          text = text.replace('\n-e \n', '\n')
+          if '__pycache__/' not in text:
+              text += '\n# Python bytecode\n__pycache__/\n*.pyc\n'
+          p.write_text(text)
+
+          # Persist real TraceIDs in the Node data layer.
+          replace('lib/db.ts', "import fs from 'fs';\n", "import fs from 'fs';\nimport crypto from 'crypto';\n")
+          replace('lib/db.ts', "import { workspaceRoot } from './paths';\n", "import { workspaceRoot } from './paths';\n\nexport function newTraceId(): string {\n  return `trc_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;\n}\n")
+          replace('lib/db.ts', "function ensureColumn(table: string, column: string, definition: string): void {", "function ensureColumn(table: string, column: string, definition: string, onReady?: () => void): void {")
+          replace('lib/db.ts', "    if (rows.some((row) => row.name === column)) return;\n    db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`, (alterErr) => {\n      if (alterErr) console.error(`[db] unable to add ${table}.${column}:`, alterErr);\n    });", "    if (rows.some((row) => row.name === column)) { onReady?.(); return; }\n    db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`, (alterErr) => {\n      if (alterErr) { console.error(`[db] unable to add ${table}.${column}:`, alterErr); return; }\n      onReady?.();\n    });")
+          marker = "].forEach(([table, column, definition]) => ensureColumn(table, column, definition));"
+          insert = marker + "\n\nfunction backfillLegacyTraceIds(table: 'activity_events' | 'approvals'): void {\n  db.run(`UPDATE ${table} SET trace_id = 'legacy_migration' WHERE trace_id IS NULL`, (err) => {\n    if (err) console.error(`[db] unable to backfill ${table}.trace_id:`, err);\n  });\n}\n\nensureColumn('activity_events', 'trace_id', 'TEXT', () => backfillLegacyTraceIds('activity_events'));\nensureColumn('approvals', 'trace_id', 'TEXT', () => backfillLegacyTraceIds('approvals'));"
+          replace('lib/db.ts', marker, insert, 1)
+          replace('lib/db.ts', "  execution_run_id?: number;\n}): Promise<number> {", "  execution_run_id?: number;\n  trace_id?: string;\n}): Promise<number> {", 1)
+          replace('lib/db.ts', "`INSERT INTO approvals (company_id, task_id, title, summary, status, risk_level, approval_type, subject_type, subject_id, execution_run_id, created_at, updated_at)\n       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`", "`INSERT INTO approvals (company_id, task_id, title, summary, status, risk_level, approval_type, subject_type, subject_id, execution_run_id, trace_id, created_at, updated_at)\n       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`")
+          replace('lib/db.ts', "      data.execution_run_id || null,\n      now,\n      now,", "      data.execution_run_id || null,\n      data.trace_id || newTraceId(),\n      now,\n      now,", 1)
+          replace('lib/db.ts', "  description?: string;\n}): Promise<number> {\n  return new Promise((resolve, reject) => {\n    const stmt = db.prepare(\n      `INSERT INTO activity_events (company_id, event_type, title, description, created_at)\n       VALUES (?, ?, ?, ?, ?)`", "  description?: string;\n  trace_id?: string;\n}): Promise<number> {\n  return new Promise((resolve, reject) => {\n    const stmt = db.prepare(\n      `INSERT INTO activity_events (company_id, event_type, title, description, trace_id, created_at)\n       VALUES (?, ?, ?, ?, ?, ?)`")
+          replace('lib/db.ts', "      data.description || '',\n      new Date().toISOString(),", "      data.description || '',\n      data.trace_id || newTraceId(),\n      new Date().toISOString(),", 1)
+          replace('lib/db.ts', "db.run(`INSERT INTO activity_events (company_id, event_type, title, description, created_at) VALUES (?, 'result_approved', ?, ?, ?)`, [data.company_id, `Result approval #${data.approval_id} completed`, 'Candidate output was accepted and finalized by the founder approval flow.', timestamp]", "db.run(`INSERT INTO activity_events (company_id, event_type, title, description, trace_id, created_at) VALUES (?, 'result_approved', ?, ?, ?, ?)`, [data.company_id, `Result approval #${data.approval_id} completed`, 'Candidate output was accepted and finalized by the founder approval flow.', newTraceId(), timestamp]")
+
+          # Render persisted traces in the existing responsive surface.
+          replace('components/CompanyDetailSurface.tsx', "type Approval = { id: number; title: string; summary?: string; status: string; risk_level?: string };", "type Approval = { id: number; title: string; summary?: string; status: string; risk_level?: string; trace_id?: string };")
+          replace('components/CompanyDetailSurface.tsx', "type ActivityEvent = { id: number; event_type: string; title: string; description?: string; created_at: string };", "type ActivityEvent = { id: number; event_type: string; title: string; description?: string; created_at: string; trace_id?: string };")
+          old_fn = "/** Presentational-only reference, since activity_events has no trace_id column yet. */\nfunction eventRef(id: number) {\n  return `evt_${id.toString().padStart(4, '0')}`;\n}\n"
+          new_fn = "const LEGACY_TRACE_VALUE = 'legacy_migration';\n\nfunction traceDisplay(traceId?: string): { label: string; legacy: boolean } {\n  if (!traceId || traceId === LEGACY_TRACE_VALUE) return { label: 'Legacy', legacy: true };\n  return { label: traceId, legacy: false };\n}\n"
+          replace('components/CompanyDetailSurface.tsx', old_fn, new_fn)
+          text = Path('components/CompanyDetailSurface.tsx').read_text()
+          text = text.replace("eventRef(event.id)", "traceDisplay(event.trace_id).label")
+          Path('components/CompanyDetailSurface.tsx').write_text(text)
+
+          # Worker writes receive the same trace convention.
+          for path in ('worker/execution_worker.py', 'worker/supervisor_router.py'):
+              replace(path, 'import sys\n', 'import sys\nimport uuid\n', 1)
+              replace(path, "def now() -> str:\n    return datetime.now(timezone.utc).isoformat()\n", "def now() -> str:\n    return datetime.now(timezone.utc).isoformat()\n\n\ndef new_trace_id() -> str:\n    return f\"trc_{uuid.uuid4().hex[:12]}\"\n", 1)
+              p = Path(path)
+              t = p.read_text()
+              t = t.replace('INSERT INTO activity_events (company_id, event_type, title, description, created_at)\n        VALUES (?, ?, ?, ?, ?)', 'INSERT INTO activity_events (company_id, event_type, title, description, trace_id, created_at)\n        VALUES (?, ?, ?, ?, ?, ?)')
+              t = t.replace('event_type, title, description, now()),', 'event_type, title, description, new_trace_id(), now()),')
+              p.write_text(t)
+
+          p = Path('worker/execution_worker.py')
+          t = p.read_text()
+          t = t.replace('execution_run_id, created_at, updated_at)\n               VALUES (?, ?, ?, ?, \'pending\', ?, \'result_acceptance\', \'output\', ?, ?, ?, ?)', 'execution_run_id, trace_id, created_at, updated_at)\n               VALUES (?, ?, ?, ?, \'pending\', ?, \'result_acceptance\', \'output\', ?, ?, ?, ?, ?)')
+          t = t.replace('risk, output_id, run["id"], now(), now()),', 'risk, output_id, run["id"], new_trace_id(), now(), now()),')
+          p.write_text(t)
+          PY
+
+      - name: Upgrade GitHub Pages production showcase
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('docs/product-tour.html')
+          t = p.read_text()
+          t = t.replace('<div class="sidebar-foot"><strong>Safe preview</strong><p>Seeded data. No secrets or external writes.</p></div>', '<div class="sidebar-foot"><strong>Production architecture preview</strong><p>Real OS surfaces and governance contracts. External writes remain approval-gated.</p></div>')
+          t = t.replace('<span class="status-pill">System healthy</span><span class="status-pill">Approval gated</span>', '<span class="status-pill">Runtime healthy</span><span class="status-pill">Traceable</span><span class="status-pill">Approval gated</span>')
+          t = t.replace('Decisions, incidents, active work, and consequential changes—without dashboard noise.', 'Operate objectives, companies, agents, approvals, executions, incidents, and institutional memory through one governed control plane.')
+          t = t.replace('data-trace="CYV-', 'data-trace="trc_')
+          t = t.replace('<h2>Active missions</h2>', '<h2>Live execution posture</h2>')
+          p.write_text(t)
+          PY
+
+          cat > docs/FRONTEND_BACKEND_BRIDGE.md <<'EOF'
+          # Cyvora Frontend ↔ Backend Bridge
+
+          ## Current bridge
+          - Company details load from `/api/companies/:id`.
+          - Approvals post through `/api/approvals/:id`.
+          - Activity and approvals now persist real `trc_<12-hex>` TraceIDs.
+          - Node and Python worker insertion paths share the same trace convention.
+          - Company detail remains one reusable responsive component.
+
+          ## Remaining, in priority order
+          1. **Company-scoped SSE:** add `company_id` filtering to `/api/stream`; subscribe from `CompanyDetailSurface` with `EventSource` and merge updates into local state.
+          2. **Canonical transition events:** emit strict `IDLE`, `THINKING`, `EXECUTING`, `AWAITING_APPROVAL`, `BLOCKED`, and `COMPLETE` transitions instead of inferring state from free-form status text.
+          3. **Approval handshake:** show deterministic Intent vs. Plan, policy result, expected outcome, cost/risk, and capture a separate founder Signature artifact before unblocking work.
+          4. **Trace every mutation:** add `trace_id` to tasks, execution runs, outputs, validation runs, usage events, incidents, and recovery actions; propagate one parent trace through the whole objective-to-history chain.
+          5. **Tenant-scope audit:** verify every route validates company, department, team, agent, task, approval, run, and connector IDs against the authenticated tenant.
+          6. **Explicit task binding:** bind each execution run to one task rather than allowing a worker to select the first eligible company task.
+          7. **Production secrets and connectors:** encrypted server-side secret storage, scoped connector tokens, health checks, revocation, and sandboxed write adapters.
+          8. **Durable production platform:** PostgreSQL migrations, production auth/RBAC, queue deployment, worker supervision, observability, backups, and end-to-end acceptance tests.
+          EOF
+
+      - name: Remove temporary staging files
+        run: |
+          rm -rf .cyvora-import
+          rm -f .github/workflows/apply-traceability-fast.yml
+
+      - name: Validate
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+          python3 -m py_compile worker/execution_worker.py worker/supervisor_router.py
+
+      - name: Commit implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Cyvora Import Bot'
+          git config user.email 'cyvora-import@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: persist traceability and align production showcase'
+          git push origin HEAD:feature/traceability-production-showcase
