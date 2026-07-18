@@ -23,7 +23,21 @@ jobs:
       - name: Apply governance live bridge
         if: github.event_name == 'pull_request' && hashFiles('scripts/apply-governance-live-bridge.py') != ''
         run: |
-          python3 scripts/apply-governance-live-bridge.py
+          rm -f GOVERNANCE_MIGRATION_ERROR.txt
+          set +e
+          python3 scripts/apply-governance-live-bridge.py > /tmp/governance-migration.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            git reset --hard HEAD
+            cp /tmp/governance-migration.log GOVERNANCE_MIGRATION_ERROR.txt
+            git config user.name 'Cyvora Migration Bot'
+            git config user.email 'cyvora-migration@users.noreply.github.com'
+            git add GOVERNANCE_MIGRATION_ERROR.txt
+            git commit -m 'chore: capture governance migration error'
+            git push origin HEAD:${{ github.head_ref }}
+            exit 1
+          fi
           cat > .github/workflows/ci.yml <<'EOF'
           name: Cyvora CI
 
