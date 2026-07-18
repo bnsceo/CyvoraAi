@@ -23,6 +23,17 @@ jobs:
       - name: Apply clean Alpha 1 core bridge migration
         if: github.event_name == 'pull_request'
         run: |
+          rm -f MIGRATION_ERROR.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/apply-alpha1-core-bridge.py')
+          t = p.read_text()
+          old = "        status, priority, assigned_agent, risk_level, validation_policy, max_revisions, created_at, updated_at\n      )\n      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          new = "        status, priority, assigned_agent, risk_level, validation_policy, max_revisions, trace_id, created_at, updated_at\n      )\n      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          if old not in t:
+              raise SystemExit('Unable to patch task insert migration pattern')
+          p.write_text(t.replace(old, new, 1))
+          PY
           set +e
           python3 scripts/apply-alpha1-core-bridge.py > /tmp/migration.log 2>&1
           status=$?
