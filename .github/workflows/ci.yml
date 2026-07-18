@@ -6,82 +6,13 @@ on:
       - main
   pull_request:
 
-permissions:
-  contents: write
-
 jobs:
   verify:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          fetch-depth: 0
-
-      - name: Apply clean Alpha 1 core bridge migration
-        if: github.event_name == 'pull_request'
-        run: |
-          rm -f MIGRATION_ERROR.txt
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('scripts/apply-alpha1-core-bridge.py')
-          t = p.read_text()
-          bad = '"        status, priority, assigned_agent, risk_level, validation_policy, max_revisions, created_at, updated_at\\n      )\\n      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",'
-          good = '"        status, priority, assigned_agent, risk_level, validation_policy, max_revisions, created_at, updated_at\\n      )\\n      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",'
-          if bad not in t:
-              raise SystemExit('Unable to correct task insert migration matcher')
-          p.write_text(t.replace(bad, good, 1))
-          PY
-          set +e
-          python3 scripts/apply-alpha1-core-bridge.py > /tmp/migration.log 2>&1
-          status=$?
-          set -e
-          if [ "$status" -ne 0 ]; then
-            git reset --hard HEAD
-            cp /tmp/migration.log MIGRATION_ERROR.txt
-            git config user.name 'Cyvora Migration Bot'
-            git config user.email 'cyvora-migration@users.noreply.github.com'
-            git add MIGRATION_ERROR.txt
-            git commit -m 'chore: capture core bridge migration error'
-            git push origin HEAD:${{ github.head_ref }}
-            exit 1
-          fi
-          cat > .github/workflows/ci.yml <<'EOF'
-          name: Cyvora CI
-
-          on:
-            push:
-              branches:
-                - main
-            pull_request:
-
-          jobs:
-            verify:
-              runs-on: ubuntu-latest
-
-              steps:
-                - name: Checkout
-                  uses: actions/checkout@v4
-
-                - name: Use Node.js
-                  uses: actions/setup-node@v4
-                  with:
-                    node-version: 20
-                    cache: npm
-
-                - name: Install dependencies
-                  run: npm ci
-
-                - name: Verify Alpha 1 baseline
-                  run: npm run verify
-          EOF
-          git config user.name 'Cyvora Migration Bot'
-          git config user.email 'cyvora-migration@users.noreply.github.com'
-          git add -A
-          git commit -m 'feat: add migration-safe TraceIDs and exact task binding'
-          git push origin HEAD:${{ github.head_ref }}
 
       - name: Use Node.js
         uses: actions/setup-node@v4
