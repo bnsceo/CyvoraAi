@@ -4,76 +4,53 @@
 
 The application shell, Companies workspace, responsive CompanyDetailSurface, approvals, execution runs, connectors, policy surfaces, War Room, evidence, and history are implemented. The current backend provides SQLite-backed company, task, approval, output, activity, execution-run, validation, usage, incident, recovery, and worker-heartbeat records.
 
-The Alpha 1 core bridge now has two enforced foundations:
+The Alpha 1 bridge now includes:
 
-- Core mutable runtime records have migration-safe TraceID columns, and new Node write paths issue `trc_...` identifiers while legacy rows remain readable.
-- Queued execution runs are bound to one explicit `task_id`, and the worker fails closed when a run is unbound or the task does not belong to the run's company.
+- Migration-safe backend TraceIDs across core mutable runtime records.
+- Exact execution-run-to-task binding with fail-closed worker claims.
+- Immutable approval snapshots containing intent, plan, policy, plan hash, founder identity, signature, decision, conditions, and timestamps.
+- Canonical backend company machine-state transitions stored as first-class events.
+- Tenant- and company-scoped server-sent events with durable replay and `Last-Event-ID` support.
+- A live CompanyDetailSurface approval handshake that shows Intent vs. Plan before the founder signs.
+- Critical tenant-scope checks on approval, state transition, and event history operations.
 
-The production bridge is not complete until every frontend entity is sourced from durable tenant-scoped APIs and every state transition is enforced by the backend rather than inferred in the browser.
+## Remaining production work
 
-## Required bridge work
+### 1. Production identity and complete route authorization
 
-### 1. Complete universal trace context
+Replace demo tenant cookies with authenticated organizations, users, roles, memberships, sessions, and server-enforced authorization. Extend the tenant-scope helper across every remaining API route and worker entry point.
 
-Extend the established trace chain across objective, research run, blueprint version, model call, tool call, connector action, and history export. Frontend-generated diagnostic references must remain error references only; operational TraceIDs must come from the backend.
+### 2. Durable production database
 
-### 2. Harden task-to-run authorization
+Move runtime persistence from local SQLite to PostgreSQL with versioned migrations, transactions, indexes, backups, retention, tenant isolation, and audited administrative access. SQLite remains the local/demo database.
 
-The explicit task binding is in place. Next, store and verify the approved runtime-plan hash and immutable approval snapshot before claim and again before commit.
+### 3. Real provider and connector adapters
 
-### 3. Immutable approval snapshots
+Implement one production model provider and one connector end to end. Secrets must be encrypted server-side; browser payloads receive health, scopes, account identity, expiration, and reconnect state only.
 
-Blueprint and execution approvals need versioned canonical JSON, content hashes, approver identity, decision reason, policy result, timestamp, and the exact downstream action authorized by the approval.
+### 4. Queue and worker deployment
 
-### 4. Production identity and tenancy
+Deploy durable workers with queue ownership, leases, heartbeats, retries, dead-letter handling, idempotency keys, cancellation, concurrency limits, and recovery procedures.
 
-Replace demo tenant assumptions with authenticated organizations, users, roles, memberships, sessions, and server-enforced authorization. Founder, operator, and auditor permissions must be checked by API routes and workers.
+### 5. Evidence and complete trace propagation
 
-### 5. Durable production database
+Add durable object storage for research evidence, source captures, generated files, code patches, media, validation artifacts, and final deliverables. Continue the same TraceID through model requests, connector actions, evidence objects, and exportable history.
 
-Move runtime persistence from local SQLite to PostgreSQL with migrations, transactions, indexes, backups, retention, tenant isolation, and audited administrative access. SQLite remains useful for local/demo mode.
-
-### 6. Real provider and connector adapters
-
-Implement at least one production model provider and one connector end to end. Secrets must be encrypted server-side; the frontend receives health, scopes, account identity, expiration, and reconnect state only.
-
-### 7. Queue and worker deployment
-
-Deploy durable workers with queue ownership, leases, heartbeats, retries, dead-letter handling, idempotency keys, cancellation, concurrency limits, and recovery procedures. Surface worker and queue health through the existing Execution and War Room interfaces.
-
-### 8. Validation and result acceptance
-
-Store validator inputs, outputs, findings, confidence, dissent, costs, and policy decisions. Final outputs must remain candidates until the configured human or jury gate accepts them.
-
-### 9. Evidence and file storage
-
-Add durable object storage for research evidence, source captures, generated files, code patches, media, validation artifacts, and final deliverables. Every asset must reference company, objective, task, run, creator, version, provenance, and TraceID.
-
-### 10. Real-time updates
-
-Replace periodic static reads with a company-scoped server event channel for task, run, approval, connector, worker, and incident updates. All event payloads must be tenant-scoped and replayable from durable history.
-
-### 11. Production operations
-
-Add structured logs, metrics, alerting, rate limits, audit export, security headers, CSRF protection, input schemas, error redaction, dependency scanning, environment separation, deployment rollback, and disaster-recovery tests.
-
-### 12. End-to-end acceptance tests
+### 6. Full-loop acceptance tests
 
 Automate the canonical loop:
 
 Objective → Research → Blueprint → Approval → Company → Task → Policy Gate → Worker → Validation → Result Approval → History
 
-The release gate passes only when a test proves that one TraceID can reconstruct the complete chain without manual database edits.
+The final production gate passes only when one TraceID reconstructs the complete chain without manual database edits.
 
 ## Recommended implementation order
 
-1. Immutable blueprint and approval snapshots
-2. Canonical backend state transitions and company-scoped SSE
-3. PostgreSQL migrations and tenant-safe repositories
-4. Production authentication and role enforcement
-5. One model provider and one connector
-6. Durable queue and worker deployment
-7. Evidence storage and full trace propagation
-8. Full-loop acceptance tests
-9. Billing, plans, seats, and usage enforcement
-10. Production hardening and public beta
+1. PostgreSQL migrations and tenant-safe repositories
+2. Production authentication and role enforcement
+3. One model provider and one connector
+4. Durable queue and worker deployment
+5. Evidence storage and full trace propagation
+6. Full-loop acceptance tests
+7. Billing, plans, seats, and usage enforcement
+8. Production hardening and public beta
