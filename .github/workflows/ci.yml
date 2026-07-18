@@ -28,10 +28,18 @@ jobs:
           from pathlib import Path
           p = Path('scripts/apply-governance-live-bridge.py')
           text = p.read_text()
-          text = text.replace('"             approve={approve}\\n"', '"            approve={approve}\\n"')
-          text = text.replace('"             openHandshake={openHandshake}\\n"', '"            openHandshake={openHandshake}\\n"')
-          text = text.replace('"             approvalError={approvalError}\\n"', '"            approvalError={approvalError}\\n"')
-          text = text.replace('"       </div>\\n     </div>\\n   );\\n }"', '"      </div>\\n    </div>\\n  );\\n}"')
+          fixes = {
+            '"             approve={approve}\\n"': '"            approve={approve}\\n"',
+            '"             openHandshake={openHandshake}\\n"': '"            openHandshake={openHandshake}\\n"',
+            '"             approvalError={approvalError}\\n"': '"            approvalError={approvalError}\\n"',
+            '"       </div>\\n     </div>\\n   );\\n }"': '"      </div>\\n    </div>\\n  );\\n}"',
+            '"                     onClick={() => approve(approval.id)}"': '"                    onClick={() => approve(approval.id)}"',
+            '"                     onClick={() => openHandshake(approval)}"': '"                    onClick={() => openHandshake(approval)}"',
+            '"                     {approvingId === approval.id ? \'Approving…\' : \'Approve\'}"': '"                    {approvingId === approval.id ? \'Approving…\' : \'Approve\'}"',
+            '"                     {approvingId === approval.id ? \'Opening…\' : \'Review & sign\'}"': '"                    {approvingId === approval.id ? \'Opening…\' : \'Review & sign\'}"',
+          }
+          for old, new in fixes.items():
+            text = text.replace(old, new)
           p.write_text(text)
           PY
           set +e
