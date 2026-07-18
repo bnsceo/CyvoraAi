@@ -9,12 +9,17 @@ Cyvora Alpha 1 is complete only when one founder can execute one governed compan
 - [ ] `npm run build` passes.
 - [ ] Python workers compile.
 - [ ] Repository structure verification passes.
+- [ ] `npm run verify:db` proves the fresh and legacy SQLite migration contracts.
 - [ ] A fresh local database initializes without errors.
 - [ ] An existing demo database migrates without data loss.
+- [ ] New mutable runtime records receive backend-issued `trc_...` TraceIDs.
+- [ ] Legacy runtime records remain readable with the `legacy_migration` marker.
 - [ ] One objective creates a versioned blueprint.
 - [ ] The founder can approve, hold, reject, or request revision.
 - [ ] Rejected or held work cannot execute.
 - [ ] One execution run is bound to one explicit approved task.
+- [ ] An execution run without `task_id` fails closed before task claim.
+- [ ] The worker claims only `execution_runs.task_id` within the matching company.
 - [ ] PolicyGate runs before the worker claims work.
 - [ ] One TraceID reconstructs objective, approval, task, run, validation, output, and history.
 - [ ] A failed run produces a governed War Room incident.

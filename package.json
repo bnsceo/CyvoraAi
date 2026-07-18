@@ -10,8 +10,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "verify:python": "python3 -m py_compile worker/execution_worker.py worker/supervisor_router.py",
+    "verify:db": "python3 scripts/verify-db-migrations.py",
     "verify:structure": "node scripts/verify-release.mjs",
-    "verify": "npm run lint && npm run typecheck && npm run verify:python && npm run verify:structure && npm run build",
+    "verify": "npm run lint && npm run typecheck && npm run verify:python && npm run verify:db && npm run verify:structure && npm run build",
     "codex:free": "bash scripts/codex-free.sh"
   },
   "dependencies": {

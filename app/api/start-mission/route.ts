@@ -108,18 +108,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const executionRunId = await saveExecutionRun({
-      tenant,
-      request_id: requestedId,
-      goal: approvedRequestSnapshot.request,
-      runtime_plan: approvedRequestSnapshot.runtime_plan,
-      runtime_mode: runtimeMode.mode,
-      status: 'queued',
-      rollback_state: 'ready',
-      paid_ai: runtimeMode.allowPaidAI,
-      mock_mode: runtimeMode.mockMode,
-    });
-
     const blueprint = inferMissionBlueprint(goal);
     const tenantBriefing = path.join(/*turbopackIgnore: true*/ tenantPath, 'briefings', 'mission_briefing.md');
     const tenantStatus = path.join(/*turbopackIgnore: true*/ tenantPath, 'briefings', 'status.json');
@@ -153,9 +141,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     fs.writeFileSync(tenantMissionId, JSON.stringify({ id: missionId }));
     briefing.id = missionId;
 
-    let companyId: number | null = null;
+    let organization: { companyId: number; taskId: number } | null = null;
     try {
-      companyId = await seedMissionOrganization({
+      organization = await seedMissionOrganization({
         tenant,
         objective: briefing.objective || goal,
         briefing,
@@ -163,6 +151,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     } catch (orgError) {
       console.error('Failed to seed mission organization:', orgError);
     }
+
+    if (!organization) {
+      return NextResponse.json({ error: 'Unable to create the governed company task for this run' }, { status: 500 });
+    }
+
+    const executionRunId = await saveExecutionRun({
+      tenant,
+      request_id: requestedId,
+      mission_id: missionId,
+      company_id: organization.companyId,
+      task_id: organization.taskId,
+      goal: approvedRequestSnapshot.request,
+      runtime_plan: approvedRequestSnapshot.runtime_plan,
+      runtime_mode: runtimeMode.mode,
+      status: 'queued',
+      rollback_state: 'ready',
+      paid_ai: runtimeMode.allowPaidAI,
+      mock_mode: runtimeMode.mockMode,
+    });
 
     sendSSEEvent({ type: 'start', message: '🚀 Mission queued for worker processing', goal });
     sendSSEEvent({ type: 'done', briefing });
@@ -172,14 +179,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       status: 'queued',
       rollback_state: 'ready',
       mission_id: missionId || undefined,
-      company_id: companyId || undefined,
+      company_id: organization.companyId,
     });
 
     return NextResponse.json({
       success: true,
       briefing,
       id: missionId,
-      company_id: companyId,
+      company_id: organization.companyId,
       runtime_mode: runtimeMode.mode,
       paid_ai: runtimeMode.allowPaidAI,
       mock_mode: runtimeMode.mockMode,
@@ -262,7 +269,7 @@ async function seedMissionOrganization({
     objective: string;
     agents: { name: string; task: string; output: string }[];
   };
-}): Promise<number> {
+}): Promise<{ companyId: number; taskId: number }> {
   const blueprint = inferMissionBlueprint(objective);
   const companyId = await saveCompany({
     tenant,
@@ -360,5 +367,5 @@ async function seedMissionOrganization({
     description: `${blueprint.departments.length} departments, ${blueprint.connectors.length} connectors, and a starter task were seeded from the launch.`,
   });
 
-  return companyId;
+  return { companyId, taskId };
 }

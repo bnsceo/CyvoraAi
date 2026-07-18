@@ -26,6 +26,7 @@ import os
 import re
 import sqlite3
 import sys
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -48,6 +49,10 @@ ALLOWED_STATUS = {"completed", "blocked"}
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def new_trace_id() -> str:
+    return f"trc_{uuid.uuid4().hex[:12]}"
 
 
 def open_connection() -> sqlite3.Connection:
@@ -233,10 +238,10 @@ def upsert_output(conn: sqlite3.Connection, task: dict, result: dict) -> None:
 def record_event(conn: sqlite3.Connection, task: dict | None, event_type: str, title: str, description: str) -> None:
     conn.execute(
         """
-        INSERT INTO activity_events (company_id, event_type, title, description, created_at)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO activity_events (company_id, event_type, title, description, trace_id, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (task["company_id"] if task else None, event_type, title, description, now()),
+        (task["company_id"] if task else None, event_type, title, description, task.get("trace_id") if task else new_trace_id(), now()),
     )
 
 

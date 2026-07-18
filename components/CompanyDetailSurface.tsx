@@ -13,9 +13,9 @@ type Department = {
   teams?: Array<{ id: number; name: string; agents?: Array<{ id: number; agent_name: string }> }>;
 };
 
-type Approval = { id: number; title: string; summary?: string; status: string; risk_level?: string };
+type Approval = { id: number; title: string; summary?: string; status: string; risk_level?: string; trace_id?: string };
 type Connector = { id: number; name: string; connector_type: string; status: string; summary?: string };
-type ActivityEvent = { id: number; event_type: string; title: string; description?: string; created_at: string };
+type ActivityEvent = { id: number; event_type: string; title: string; description?: string; created_at: string; trace_id?: string };
 type TaskRecord = { id: number };
 type OutputRecord = { id: number };
 
@@ -39,9 +39,8 @@ type LoadState =
   | { phase: 'error'; message: string; ref: string }
   | { phase: 'ready'; data: CompanyDetail };
 
-/** Presentational-only reference, since activity_events has no trace_id column yet. */
-function eventRef(id: number) {
-  return `evt_${id.toString().padStart(4, '0')}`;
+function traceLabel(traceId?: string) {
+  return !traceId || traceId === 'legacy_migration' ? 'Legacy' : traceId;
 }
 
 function connectorTone(status: string) {
@@ -323,7 +322,7 @@ function Content({
                     {event.description ? <p className="mt-1 text-xs leading-5 text-slate-500">{event.description}</p> : null}
                   </div>
                   <span className="shrink-0 rounded-full border border-slate-400/20 bg-slate-400/10 px-2 py-0.5 font-mono text-[9px] text-slate-400">
-                    {eventRef(event.id)}
+                    {traceLabel(event.trace_id)}
                   </span>
                 </div>
                 <p className="mt-2 font-mono text-[9px] uppercase tracking-[.12em] text-slate-600">
