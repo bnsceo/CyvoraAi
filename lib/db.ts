@@ -1,7 +1,12 @@
 import sqlite3, { type Database, type RunResult } from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { workspaceRoot } from './paths';
+
+export function newTraceId(): string {
+  return `trc_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+}
 
 const DB_PATH = path.join(/*turbopackIgnore: true*/ workspaceRoot, 'data', 'missions.db');
 const SKIP_DB_INIT = process.env.CYVORA_SKIP_DB_INIT === '1';
@@ -71,6 +76,7 @@ db.run(`
     company_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
+    trace_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     FOREIGN KEY(company_id) REFERENCES companies(id)
   )
@@ -161,6 +167,7 @@ db.run(`
     attempt_count INTEGER NOT NULL DEFAULT 0,
     max_attempts INTEGER NOT NULL DEFAULT 3,
     last_error TEXT,
+    trace_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(company_id) REFERENCES companies(id),
@@ -184,6 +191,7 @@ db.run(`
     execution_run_id INTEGER,
     decision_reason TEXT,
     decided_at TEXT,
+    trace_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(company_id) REFERENCES companies(id),
@@ -206,6 +214,7 @@ db.run(`
     review_status TEXT NOT NULL DEFAULT 'unreviewed',
     finalized_at TEXT,
     approved_at TEXT,
+    trace_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     FOREIGN KEY(company_id) REFERENCES companies(id),
     FOREIGN KEY(task_id) REFERENCES tasks(id)
@@ -231,6 +240,8 @@ db.run(`
     request_id INTEGER NOT NULL,
     mission_id INTEGER,
     company_id INTEGER,
+    task_id INTEGER,
+    trace_id TEXT NOT NULL,
     goal TEXT NOT NULL,
     runtime_plan TEXT NOT NULL,
     runtime_mode TEXT NOT NULL,
@@ -248,6 +259,7 @@ db.run(`
     started_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     completed_at TEXT,
+    FOREIGN KEY(task_id) REFERENCES tasks(id),
     FOREIGN KEY(request_id) REFERENCES self_coding_requests(id),
     FOREIGN KEY(mission_id) REFERENCES missions(id),
     FOREIGN KEY(company_id) REFERENCES companies(id)
@@ -279,6 +291,7 @@ db.run(`
     estimated_cost_usd REAL NOT NULL DEFAULT 0,
     started_at TEXT NOT NULL,
     completed_at TEXT,
+    trace_id TEXT NOT NULL,
     FOREIGN KEY(company_id) REFERENCES companies(id),
     FOREIGN KEY(task_id) REFERENCES tasks(id),
     FOREIGN KEY(output_id) REFERENCES outputs(id),
@@ -299,6 +312,7 @@ db.run(`
     output_tokens INTEGER NOT NULL DEFAULT 0,
     estimated_cost_usd REAL NOT NULL DEFAULT 0,
     provider_request_id TEXT,
+    trace_id TEXT NOT NULL,
     created_at TEXT NOT NULL
   )
 `);
@@ -338,6 +352,7 @@ db.run(`
     acknowledged_at TEXT,
     resolved_at TEXT,
     resolution_note TEXT,
+    trace_id TEXT NOT NULL,
     FOREIGN KEY(company_id) REFERENCES companies(id)
   )
 `);
@@ -357,6 +372,7 @@ db.run(`
     actor TEXT NOT NULL DEFAULT 'founder',
     notes TEXT,
     result TEXT NOT NULL DEFAULT 'applied',
+    trace_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     FOREIGN KEY(incident_id) REFERENCES operations_incidents(id),
     FOREIGN KEY(company_id) REFERENCES companies(id)
@@ -380,6 +396,17 @@ function ensureColumn(table: string, column: string, definition: string): void {
 
 [
   ['tasks', 'claimed_by', 'TEXT'],
+
+  ['tasks', 'trace_id', "TEXT NOT NULL DEFAULT 'legacy_migration'"],
+  ['approvals', 'trace_id', "TEXT NOT NULL DEFAULT 'legacy_migration'"],
+  ['outputs', 'trace_id', "TEXT NOT NULL DEFAULT 'legacy_migration'"],
+  ['activity_events', 'trace_id', "TEXT NOT NULL DEFAULT 'legacy_migration'"],
+  ['execution_runs', 'task_id', 'INTEGER'],
+  ['execution_runs', 'trace_id', "TEXT NOT NULL DEFAULT 'legacy_migration'"],
+  ['validation_runs', 'trace_id', "TEXT NOT NULL DEFAULT 'legacy_migration'"],
+  ['usage_events', 'trace_id', "TEXT NOT NULL DEFAULT 'legacy_migration'"],
+  ['operations_incidents', 'trace_id', "TEXT NOT NULL DEFAULT 'legacy_migration'"],
+  ['recovery_actions', 'trace_id', "TEXT NOT NULL DEFAULT 'legacy_migration'"],
   ['tasks', 'claimed_at', 'TEXT'],
   ['tasks', 'lease_expires_at', 'TEXT'],
   ['tasks', 'heartbeat_at', 'TEXT'],
@@ -544,6 +571,7 @@ export function saveDepartment(data: {
       data.company_id,
       data.name,
       data.description || '',
+      data.trace_id || newTraceId(),
       new Date().toISOString(),
       function (this: RunResult, err: Error | null) {
         if (err) reject(err);
@@ -741,7 +769,7 @@ export function saveTask(data: {
         company_id, department_id, team_id, title, description, workflow_stage,
         status, priority, assigned_agent, risk_level, validation_policy, max_revisions, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
     stmt.run(
       data.company_id,
@@ -832,12 +860,13 @@ export function saveApproval(data: {
   subject_type?: string;
   subject_id?: number;
   execution_run_id?: number;
+  trace_id?: string;
 }): Promise<number> {
   return new Promise((resolve, reject) => {
     const now = new Date().toISOString();
     const stmt = db.prepare(
-      `INSERT INTO approvals (company_id, task_id, title, summary, status, risk_level, approval_type, subject_type, subject_id, execution_run_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO approvals (company_id, task_id, title, summary, status, risk_level, approval_type, subject_type, subject_id, execution_run_id, trace_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
     stmt.run(
       data.company_id,
@@ -850,6 +879,7 @@ export function saveApproval(data: {
       data.subject_type || null,
       data.subject_id || null,
       data.execution_run_id || null,
+      data.trace_id || newTraceId(),
       now,
       now,
       function (this: RunResult, err: Error | null) {
@@ -943,11 +973,12 @@ export function saveActivityEvent(data: {
   event_type: string;
   title: string;
   description?: string;
+  trace_id?: string;
 }): Promise<number> {
   return new Promise((resolve, reject) => {
     const stmt = db.prepare(
-      `INSERT INTO activity_events (company_id, event_type, title, description, created_at)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO activity_events (company_id, event_type, title, description, trace_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
     );
     stmt.run(
       data.company_id || null,
@@ -992,12 +1023,14 @@ export function saveExecutionRun(data: {
   mock_mode: boolean;
   mission_id?: number;
   company_id?: number;
+  task_id?: number;
+  trace_id?: string;
 }): Promise<number> {
   return new Promise((resolve, reject) => {
     const now = new Date().toISOString();
     const stmt = db.prepare(
       `INSERT INTO execution_runs (
-        tenant, request_id, mission_id, company_id, goal, runtime_plan, runtime_mode,
+        tenant, request_id, mission_id, company_id, task_id, trace_id, goal, runtime_plan, runtime_mode,
         status, rollback_state, paid_ai, mock_mode, started_at, updated_at, completed_at
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -1007,6 +1040,8 @@ export function saveExecutionRun(data: {
       data.request_id,
       data.mission_id || null,
       data.company_id || null,
+      data.task_id || null,
+      data.trace_id || newTraceId(),
       data.goal,
       JSON.stringify(data.runtime_plan),
       data.runtime_mode,

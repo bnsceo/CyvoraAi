@@ -62,7 +62,7 @@ The release gate passes only when a test proves that one TraceID can reconstruct
 
 ## Recommended implementation order
 
-1. Universal TraceID and task-to-run binding
+1. Universal TraceID and task-to-run binding — implemented for core runtime records; continue propagation to every connector/tool span
 2. Immutable blueprint and approval snapshots
 3. PostgreSQL migrations and tenant-safe repositories
 4. Production authentication and role enforcement

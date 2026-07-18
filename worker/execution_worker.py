@@ -28,6 +28,7 @@ import signal
 import socket
 import sqlite3
 import sys
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -59,6 +60,10 @@ ALLOWED_STATUS = {"completed", "blocked"}
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def new_trace_id() -> str:
+    return f"trc_{uuid.uuid4().hex[:12]}"
 
 
 def lease_deadline() -> str:
@@ -99,6 +104,11 @@ def ensure_runtime_schema(conn: sqlite3.Connection) -> None:
         ensure_column(conn, table, "attempt_count", "INTEGER NOT NULL DEFAULT 0")
         ensure_column(conn, table, "max_attempts", f"INTEGER NOT NULL DEFAULT {MAX_ATTEMPTS}")
     ensure_column(conn, "tasks", "last_error", "TEXT")
+    ensure_column(conn, "tasks", "trace_id", "TEXT NOT NULL DEFAULT 'legacy_migration'")
+    ensure_column(conn, "execution_runs", "task_id", "INTEGER")
+    ensure_column(conn, "execution_runs", "trace_id", "TEXT NOT NULL DEFAULT 'legacy_migration'")
+    ensure_column(conn, "activity_events", "trace_id", "TEXT NOT NULL DEFAULT 'legacy_migration'")
+    ensure_column(conn, "approvals", "trace_id", "TEXT NOT NULL DEFAULT 'legacy_migration'")
     ensure_column(conn, "tasks", "risk_level", "TEXT NOT NULL DEFAULT 'medium'")
     ensure_column(conn, "tasks", "validation_policy", "TEXT NOT NULL DEFAULT 'schema'")
     ensure_column(conn, "tasks", "revision_count", "INTEGER NOT NULL DEFAULT 0")
@@ -292,6 +302,11 @@ def claim_bundle(conn: sqlite3.Connection) -> dict[str, Any] | None:
         return None
 
     run = dict(run_row)
+    if not run.get("task_id"):
+        _block_run(conn, run, "execution run is not bound to a task")
+        conn.execute("COMMIT")
+        return {"blocked": True, "run": run}
+
     snapshot = load_approved_snapshot(run["tenant"], run["request_id"])
     if snapshot is None:
         _block_run(conn, run, f"approved snapshot missing for request {run['request_id']}")
@@ -313,7 +328,8 @@ def claim_bundle(conn: sqlite3.Connection) -> dict[str, Any] | None:
         SELECT t.*, a.id AS approval_id, a.risk_level AS approval_risk_level
         FROM tasks t
         JOIN approvals a ON a.task_id = t.id
-        WHERE t.company_id = ?
+        WHERE t.id = ?
+          AND t.company_id = ?
           AND t.status = 'active'
           AND a.status = 'approved'
           AND COALESCE(t.attempt_count, 0) < COALESCE(t.max_attempts, ?)
@@ -415,10 +431,10 @@ def record_schema_validation(conn: sqlite3.Connection, run: dict[str, Any], task
 def record_event(conn: sqlite3.Connection, company_id: int | None, event_type: str, title: str, description: str) -> None:
     conn.execute(
         """
-        INSERT INTO activity_events (company_id, event_type, title, description, created_at)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO activity_events (company_id, event_type, title, description, trace_id, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (company_id, event_type, title, description, now()),
+        (company_id, event_type, title, description, new_trace_id(), now()),
     )
 
 
