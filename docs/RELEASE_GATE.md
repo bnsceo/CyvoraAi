@@ -22,6 +22,9 @@ Cyvora Alpha 1 is complete only when one founder can execute one governed compan
 - [ ] The worker claims only `execution_runs.task_id` within the matching company.
 - [ ] PolicyGate runs before the worker claims work.
 - [ ] One TraceID reconstructs objective, approval, task, run, validation, output, and history.
+- [ ] Approval decisions preserve immutable intent, plan, policy, plan hash, founder signature, and conditions.
+- [ ] Company machine-state transitions are backend validated and stored as first-class events.
+- [ ] `/api/stream?company_id=...` is tenant-scoped and replays durable events from `Last-Event-ID`.
 - [ ] A failed run produces a governed War Room incident.
 - [ ] War Room recovery preserves the original failure record.
 - [ ] Connector secrets never reach browser payloads.

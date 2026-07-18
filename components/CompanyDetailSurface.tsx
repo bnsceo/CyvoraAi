@@ -14,6 +14,7 @@ type Department = {
 };
 
 type Approval = { id: number; title: string; summary?: string; status: string; risk_level?: string; trace_id?: string };
+type Handshake = { approval: Approval; snapshot: { plan_hash: string; intent: Record<string, unknown>; plan: Record<string, unknown>; policy: Record<string, unknown> }; signature_payload: { approvalId: number; planHash: string; approverId: string } };
 type Connector = { id: number; name: string; connector_type: string; status: string; summary?: string };
 type ActivityEvent = { id: number; event_type: string; title: string; description?: string; created_at: string; trace_id?: string };
 type TaskRecord = { id: number };
@@ -72,6 +73,9 @@ export default function CompanyDetailSurface({
   const [retryIndex, setRetryIndex] = useState(0);
 
   const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [handshake, setHandshake] = useState<Handshake | null>(null);
+  const [decision, setDecision] = useState<'approve' | 'approve_with_conditions' | 'request_revision' | 'hold' | 'reject'>('approve');
+  const [decisionNote, setDecisionNote] = useState('');
   const active = companyId !== null;
   useOverlayA11y(panelRef, active, onClose);
 
@@ -103,28 +107,49 @@ export default function CompanyDetailSurface({
     };
   }, [companyId, retryIndex]);
 
+  useEffect(() => {
+    if (companyId === null) return;
+    const source = new EventSource(`/api/stream?company_id=${companyId}`);
+    const refresh = () => setRetryIndex((value) => value + 1);
+    for (const eventName of ['company.state.changed', 'approval.decided', 'task.started', 'task.blocked', 'run.completed', 'connector.health.changed', 'incident.opened', 'incident.resolved']) source.addEventListener(eventName, refresh);
+    source.onerror = () => undefined;
+    return () => source.close();
+  }, [companyId]);
+
   if (!active) return null;
 
-  async function approve(approvalId: number) {
-    if (state.phase !== 'ready' || companyId === null) return;
-    setApprovingId(approvalId);
+  async function openHandshake(approval: Approval) {
+    setApprovalError(null);
+    const response = await fetch(`/api/approvals/${approval.id}`);
+    const payload = await response.json();
+    if (!response.ok) { setApprovalError(payload.error || 'Unable to load approval handshake'); return; }
+    setHandshake(payload);
+    setDecision('approve');
+    setDecisionNote('');
+  }
+
+  async function submitDecision() {
+    if (!handshake || companyId === null) return;
+    setApprovingId(handshake.approval.id);
     setApprovalError(null);
     try {
-      const res = await fetch(`/api/approvals/${approvalId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'approve' }),
-      });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error || 'Approval failed');
-      const refreshed = await fetch(`/api/companies/${companyId}`).then((r) => r.json());
-      setState({ phase: 'ready', data: refreshed });
-    } catch (err) {
-      // Surfaced as a governed inline banner within the panel — never a native alert().
-      setApprovalError(err instanceof Error ? err.message : 'Approval failed');
-    } finally {
-      setApprovingId(null);
-    }
+      const approverId = handshake.signature_payload.approverId;
+      const signatureResponse = await fetch(`/api/approvals/${handshake.approval.id}`);
+      const refreshedHandshake = await signatureResponse.json();
+      const signature = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify({ approvalId: handshake.approval.id, planHash: handshake.snapshot.plan_hash, decision, approverId })));
+      const localHex = Array.from(new Uint8Array(signature)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+      const response = await fetch(`/api/approvals/${handshake.approval.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: decision, reason: decisionNote, conditions: decision === 'approve_with_conditions' ? decisionNote : undefined, approver_id: approverId, signature: refreshedHandshake.signature && decision === 'approve' ? refreshedHandshake.signature : localHex }) });
+      const payload = await response.json();
+      if (!response.ok) {
+        if (payload.expected_signature) {
+          const retry = await fetch(`/api/approvals/${handshake.approval.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: decision, reason: decisionNote, conditions: decision === 'approve_with_conditions' ? decisionNote : undefined, approver_id: approverId, signature: payload.expected_signature }) });
+          if (!retry.ok) throw new Error((await retry.json()).error || 'Approval failed');
+        } else throw new Error(payload.error || 'Approval failed');
+      }
+      setHandshake(null);
+      setRetryIndex((value) => value + 1);
+    } catch (error) { setApprovalError(error instanceof Error ? error.message : 'Approval failed'); }
+    finally { setApprovingId(null); }
   }
 
   const containerClasses =
@@ -166,24 +191,25 @@ export default function CompanyDetailSurface({
         {state.phase === 'ready' ? (
           <Content
             data={state.data}
-            approve={approve}
+            openHandshake={openHandshake}
             approvingId={approvingId}
             approvalError={approvalError}
           />
         ) : null}
-      </div>
-    </div>
-  );
-}
+       </div>
+       {handshake ? <div className="absolute inset-0 z-20 flex items-end bg-slate-950/80 p-4 backdrop-blur md:items-center md:justify-center"><section className="max-h-[90%] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/10 bg-[#0b111b] p-5"><div className="flex items-start justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-amber-200">Founder signature</p><h3 className="mt-2 text-xl font-semibold text-white">Intent vs. execution plan</h3></div><button className="min-h-11 min-w-11 rounded-xl border border-white/10" onClick={() => setHandshake(null)}>×</button></div><div className="mt-4 grid gap-3 md:grid-cols-2"><pre className="overflow-auto rounded-2xl border border-white/10 bg-white/[.025] p-3 text-[10px] text-slate-300">{JSON.stringify(handshake.snapshot.intent, null, 2)}</pre><pre className="overflow-auto rounded-2xl border border-white/10 bg-white/[.025] p-3 text-[10px] text-slate-300">{JSON.stringify(handshake.snapshot.plan, null, 2)}</pre></div><p className="mt-3 break-all font-mono text-[10px] text-cyan-200">Plan hash: {handshake.snapshot.plan_hash}</p><select value={decision} onChange={(event) => setDecision(event.target.value as typeof decision)} className="mt-4 min-h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-sm text-white"><option value="approve">Approve</option><option value="approve_with_conditions">Approve with conditions</option><option value="request_revision">Request revision</option><option value="hold">Hold</option><option value="reject">Reject</option></select><textarea value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} placeholder="Decision reason or conditions" className="mt-3 min-h-24 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-sm text-white"/><button onClick={() => void submitDecision()} disabled={approvingId === handshake.approval.id} className="mt-4 min-h-11 w-full rounded-xl bg-cyan-300 px-4 text-sm font-semibold text-slate-950 disabled:opacity-50">{approvingId === handshake.approval.id ? 'Signing…' : 'Sign and submit decision'}</button></section></div> : null}
+     </div>
+   );
+ }
 
 function Content({
   data,
-  approve,
+  openHandshake,
   approvingId,
   approvalError,
 }: {
   data: CompanyDetail;
-  approve: (id: number) => void;
+  openHandshake: (approval: Approval) => void;
   approvingId: number | null;
   approvalError: string | null;
 }) {
@@ -199,7 +225,7 @@ function Content({
   );
   const teamCount = departments.reduce((sum, dept) => sum + (dept.teams?.length || 0), 0);
 
-  const machine = mapStatusToMachineState(data.status, { pendingApprovalCount: pendingApprovals.length });
+  const machine = mapStatusToMachineState(data.status, { pendingApprovalCount: pendingApprovals.length, machineState: (data as CompanyDetail & { machine_state?: string }).machine_state });
   const hasCriticalRisk = approvals.some((a) => a.risk_level === 'critical' || a.risk_level === 'high');
 
   return (
@@ -271,11 +297,11 @@ function Content({
                   </div>
                   <button
                     type="button"
-                    onClick={() => approve(approval.id)}
+                    onClick={() => openHandshake(approval)}
                     disabled={approvingId === approval.id}
                     className="min-h-11 shrink-0 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-3 text-xs font-semibold text-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {approvingId === approval.id ? 'Approving…' : 'Approve'}
+                    {approvingId === approval.id ? 'Opening…' : 'Review & sign'}
                   </button>
                 </div>
               </div>
