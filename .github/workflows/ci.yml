@@ -30,6 +30,7 @@ jobs:
           text = p.read_text()
           text = text.replace('"             approve={approve}\\n"', '"            approve={approve}\\n"')
           text = text.replace('"             openHandshake={openHandshake}\\n"', '"            openHandshake={openHandshake}\\n"')
+          text = text.replace('"             approvalError={approvalError}\\n"', '"            approvalError={approvalError}\\n"')
           p.write_text(text)
           PY
           set +e
