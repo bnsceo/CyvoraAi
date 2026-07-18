@@ -1,0 +1,28 @@
+name: Kick traceability implementation
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  kick:
+    if: github.head_ref == 'feature/traceability-production-showcase'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/traceability-production-showcase
+          fetch-depth: 0
+      - name: Trigger branch workflow once
+        run: |
+          if [ -f .cyvora-import/kicked ]; then exit 0; fi
+          mkdir -p .cyvora-import
+          echo triggered > .cyvora-import/kicked
+          git config user.name 'Cyvora Import Bot'
+          git config user.email 'cyvora-import@users.noreply.github.com'
+          git add .cyvora-import/kicked
+          git commit -m 'chore: trigger traceability application'
+          git push origin HEAD:feature/traceability-production-showcase
