@@ -31,6 +31,7 @@ jobs:
           text = text.replace('"             approve={approve}\\n"', '"            approve={approve}\\n"')
           text = text.replace('"             openHandshake={openHandshake}\\n"', '"            openHandshake={openHandshake}\\n"')
           text = text.replace('"             approvalError={approvalError}\\n"', '"            approvalError={approvalError}\\n"')
+          text = text.replace('"       </div>\\n     </div>\\n   );\\n }"', '"      </div>\\n    </div>\\n  );\\n}"')
           p.write_text(text)
           PY
           set +e
