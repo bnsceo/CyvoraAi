@@ -23,7 +23,20 @@ jobs:
       - name: Apply clean Alpha 1 core bridge migration
         if: github.event_name == 'pull_request'
         run: |
-          python3 scripts/apply-alpha1-core-bridge.py
+          set +e
+          python3 scripts/apply-alpha1-core-bridge.py > /tmp/migration.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            git reset --hard HEAD
+            cp /tmp/migration.log MIGRATION_ERROR.txt
+            git config user.name 'Cyvora Migration Bot'
+            git config user.email 'cyvora-migration@users.noreply.github.com'
+            git add MIGRATION_ERROR.txt
+            git commit -m 'chore: capture core bridge migration error'
+            git push origin HEAD:${{ github.head_ref }}
+            exit 1
+          fi
           cat > .github/workflows/ci.yml <<'EOF'
           name: Cyvora CI
 
