@@ -6,11 +6,12 @@ import { appendDurableEvent, listDurableEvents } from '@/lib/governanceStore';
 const emitter = new EventEmitter();
 emitter.setMaxListeners(200);
 
-export type ScopedEvent = { type: string; tenant?: string; companyId?: number | null; traceId?: string; payload?: unknown; message?: string };
+export type ScopedEvent = { type: string; tenant?: string; companyId?: number | null; traceId?: string; payload?: unknown; message?: string; [key: string]: unknown };
 
 export async function sendSSEEvent(data: ScopedEvent) {
   const tenant = data.tenant || 'default';
-  const stored = await appendDurableEvent({ tenant, companyId: data.companyId || null, eventType: data.type, payload: data.payload || { message: data.message }, traceId: data.traceId });
+  const { type, tenant: _tenant, companyId, traceId, payload, ...details } = data;
+  const stored = await appendDurableEvent({ tenant, companyId: companyId || null, eventType: type, payload: payload || details, traceId });
   emitter.emit('message', stored);
   return stored;
 }

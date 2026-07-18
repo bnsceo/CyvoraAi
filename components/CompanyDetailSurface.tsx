@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useBreakpoint } from '@/lib/useBreakpoint';
 import { useOverlayA11y } from '@/lib/useOverlayA11y';
 import { mapStatusToMachineState, machineStateTone } from '@/lib/stateMachine';

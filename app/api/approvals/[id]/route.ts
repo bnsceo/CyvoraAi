@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTenantId } from '@/lib/tenant';
 import { getApprovalById, updateApprovalStatus, finalizeApprovedResult, getTasks } from '@/lib/db';
 import { contentHash, type ApprovalDecision } from '@/lib/governance';
-import { ensureApprovalSnapshot, getApprovalSnapshot, signApproval } from '@/lib/governanceStore';
+import { ensureApprovalSnapshot, signApproval } from '@/lib/governanceStore';
 import { sendSSEEvent } from '@/app/api/stream/route';
 
 const decisions: ApprovalDecision[] = ['approve', 'approve_with_conditions', 'request_revision', 'hold', 'reject'];
