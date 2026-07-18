@@ -1,1 +1,1 @@
-Missing expected source in components/CompanyDetailSurface.tsx: '             approvalError={approvalError}\n'
+Missing expected source in components/CompanyDetailSurface.tsx: '       </div>\n     </div>\n   );\n }'
