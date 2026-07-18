@@ -1,0 +1,1 @@
+Missing expected source in lib/db.ts: '        status, priority, assigned_agent, risk_level, validation_policy, max_revisions, created_at, '
