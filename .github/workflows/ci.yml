@@ -24,6 +24,14 @@ jobs:
         if: github.event_name == 'pull_request' && hashFiles('scripts/apply-governance-live-bridge.py') != ''
         run: |
           rm -f GOVERNANCE_MIGRATION_ERROR.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/apply-governance-live-bridge.py')
+          text = p.read_text()
+          text = text.replace('"             approve={approve}\\n"', '"            approve={approve}\\n"')
+          text = text.replace('"             openHandshake={openHandshake}\\n"', '"            openHandshake={openHandshake}\\n"')
+          p.write_text(text)
+          PY
           set +e
           python3 scripts/apply-governance-live-bridge.py > /tmp/governance-migration.log 2>&1
           status=$?
